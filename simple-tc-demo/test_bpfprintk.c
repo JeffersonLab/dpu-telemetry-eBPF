@@ -30,7 +30,7 @@ int tc_ingress(struct __sk_buff *ctx)
     if ((void *)(l3 + 1) > data_end)
         return TC_ACT_OK;
 
-    // Convert source IP from network byte order to host order
+    // Save Src IP and print (in u32. Processing this u32 to 4 bytes will cause error)
     __u32 src_ip = bpf_ntohl(l3->saddr);
 
     bpf_printk("Got IP packet: [src IP: %u], tot_len: %d, ttl: %d",
