@@ -16,6 +16,7 @@
 
 
 ---
+- Sample `bp_printk` output.
 ```bash
 # Check the `bpf_printk()` output 
 $ sudo cat /sys/kernel/debug/tracing/trace_pipe | grep bpf
