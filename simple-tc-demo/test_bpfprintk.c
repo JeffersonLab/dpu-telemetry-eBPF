@@ -7,6 +7,8 @@
 #define TC_ACT_OK 0
 #define ETH_P_IP 0x0800 /* Internet Protocol packet */
 
+/* Below after "///" are not comments. They are eBPF definiations. */
+
 /// @tchook {"ifindex":1, "attach_point":"BPF_TC_INGRESS"}
 /// @tcopts {"handle":1, "priority":1}
 SEC("tc")
@@ -22,13 +24,19 @@ int tc_ingress(struct __sk_buff *ctx)
 
     l2 = data;
     if ((void *)(l2 + 1) > data_end)
-        return TC_ACT_OK;
+        return TC_ACT_OK;  // ensure packet is within bound
 
     l3 = (struct iphdr *)(l2 + 1);
     if ((void *)(l3 + 1) > data_end)
         return TC_ACT_OK;
 
-    bpf_printk("Got IP packet: tot_len: %d, ttl: %d", bpf_ntohs(l3->tot_len), l3->ttl);
+    // Save Src IP and print (in u32. Processing this u32 to 4 bytes will cause error)
+    __u32 src_ip = bpf_ntohl(l3->saddr);
+
+    bpf_printk("Got IP packet: [src IP: %u], tot_len: %d, ttl: %d",
+        src_ip,
+        bpf_ntohs(l3->tot_len), l3->ttl);
+
     return TC_ACT_OK;
 }
 
