@@ -16,6 +16,7 @@ struct ip_proto_stats {
 // LRU Hash Map for per-IP traffic statistics.
 // Map name "ip_xxx_map" has to match the user space code.
 struct {
+    // We may need "__uint(type, BPF_MAP_TYPE_PERCPU_HASH)" for high speed case
     __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 1024); // Track up to 1024 IPs
     __type(key, __u32);  // IPv4 Address
@@ -49,7 +50,11 @@ int count_ip_proto_traffic(struct __sk_buff *skb) {
             return TC_ACT_OK;
     }
 
+    // payload_len = IP header + transport header + payload
     __u16 payload_len = bpf_ntohs(ip->tot_len);
+    // For BW estimation, use the packet length:
+    // Ethernet header + IP header + transport header + payload
+    // pkt_size = data_end - data;
     
     if (ip->protocol == IPPROTO_TCP) { // TCP
         __sync_fetch_and_add(&stats->tcp_packets, 1);
