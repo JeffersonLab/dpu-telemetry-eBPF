@@ -17,7 +17,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
 2. Attach this compiled eBPF program `tc_traffic_count.o` with `tc`.
    - Add clsact qdisc to the Ethernet device `enP2s1f0np0`: `sudo tc qdisc add dev enP2s1f0np0 clsact`.
    - Attach the program: `sudo tc filter add dev enP2s1f0np0 ingress bpf da obj tc_ip_counter.o sec classifier/ingress`. Needs to match kernel code "SEC" information.
-   - (Optional) Inspect the map without a user space program.
+   - (Optional) Inspect the eBPF map without a user space program.
   
         ```bash
         $ sudo bpftool map  # Find the map
@@ -40,19 +40,23 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
             }
         ]
         ```
-3. Pin the map for the user space code: `sudo bpftool map pin name ip_src_map /sys/fs/bpf/ip_src_map`. Can either pin by name or id. Dump this map by pinned address: `sudo bpftool map dump pin /sys/fs/bpf/ip_src_map`. If you skip this step, you might end up open 2 eBPF map instances when you run the userspace code and never get any traffic stats for your userspace one.
+3. **PIN** the map for the user space code: `sudo bpftool map pin name ip_src_map /sys/fs/bpf/ip_src_map`. Can either pin by name or id. Dump this map by pinned address: `sudo bpftool map dump pin /sys/fs/bpf/ip_src_map`. If you skip this step, you might end up open 2 eBPF map instances when you run the userspace code and never get any traffic stats for your userspace one.
 
 4. Compile the userspace program: `gcc -o tc_user.o tc_user.c -lbpf`
-5. Run the userspace program: `sudo ./tc_user.o`. The eexpected output is shown in the next section.
+5. Run the userspace program: `sudo ./tc_user.o`. The expected output is shown in the next section.
 
-6. **CLEAN UP** the rules.
+6. **UNPIN** the map and **CLEAN UP** the rules.
     ```bash
+    # Pinning the map make it persistent and you can not deattach it.
+    $ sudo rm /sys/fs/bpf/ip_src_map  # delete the pinned map
     $ sudo tc filter del dev enP2s1f0np0 ingress
     $ sudo tc qdisc del dev enP2s1f0np0 clsact
-    $ sudo bpftool map  # no map showed up
+    $ sudo bpftool map  # verify no map showed up
     ```
 
 ### Expected Output
+
+#### Test with `nc`
 Try to generate some UDP/TCP traffic. I have tried the low speed validation via the `nc` approach:
 
 1. On `nvidarm`, start a nc UDP server in keep listening mode: `nc -l -u -k <port_number>`;
@@ -67,3 +71,7 @@ P: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 3, UDP Bytes: 
 IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes: 153
 IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes: 153
 ```
+
+#### Test with `iperf3`
+
+See the guide in [iperf3.md](../docs-general/iperf3.md).
