@@ -25,12 +25,13 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
         key 4B  value 32B  max_entries 1024  memlock 40960B
         btf_id 150
         # 6 is the map id; "ip_src_map" is the name which should match our definition in the C eBPF kernel code
-        # If the ebpf map name is truncated and use the truncated one 
+
+        # If the ebpf map name is truncated, use the truncated one 
         $ sudo bpftool map dump name ip_src_map   # dump the map context
         $ sudo bpftool map dump id 6 # dump by id
         # Output example
         [{
-                "key": 531773825,  # need ntoh transfer to see the IP
+                "key": 531773825,  # need ntoh transfer before printing out the IP
                 "value": {
                     "tcp_bytes": 0,
                     "tcp_packets": 0,
@@ -40,12 +41,13 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
             }
         ]
         ```
-3. **PIN** the map for the user space code: `sudo bpftool map pin name ip_src_map /sys/fs/bpf/ip_src_map`. Can either pin by name or id. Dump this map by pinned address: `sudo bpftool map dump pin /sys/fs/bpf/ip_src_map`. If you skip this step, you might end up open 2 eBPF map instances when you run the userspace code and never get any traffic stats for your userspace one.
+
+3. **PIN** the map for the user space code: `sudo bpftool map pin name ip_src_map /sys/fs/bpf/ip_src_map`. Can either pin by name or id. Dump this map by pinned address: `sudo bpftool map dump pin /sys/fs/bpf/ip_src_map`. *If skipping this step, you might end up openning 2 eBPF map instances when you run the userspace code and never get any traffic stats for your userspace one.*
 
 4. Compile the userspace program: `gcc -o tc_user.o tc_user.c -lbpf`
 5. Run the userspace program: `sudo ./tc_user.o`. The expected output is shown in the next section.
 
-6. **UNPIN** the map and **CLEAN UP** the rules.
+6. **CLEANUP**: **UNPIN** the map and **delete** the qdisc rules.
     ```bash
     # Pinning the map make it persistent and you can not deattach it.
     $ sudo rm /sys/fs/bpf/ip_src_map  # delete the pinned map
@@ -57,7 +59,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
 ### Expected Output
 
 #### Test with `nc`
-Try to generate some UDP/TCP traffic. I have tried the low speed validation via the `nc` approach:
+Try to generate some UDP/TCP traffic and watch for the userspace outputs. I have validated via the `nc` low speed approach:
 
 1. On `nvidarm`, start a nc UDP server in keep listening mode: `nc -l -u -k <port_number>`;
 2. On another node, send UDP traffic to `nvidarm`'s high speed Ethernet IP, 129.57.177.126, `nc -u 129.57.177.126 <port_number>`.
@@ -67,9 +69,8 @@ While sending these UDP traffic, you should be able to see the value printed to 
 ```bash
 Tracking per-IP TCP/UDP traffic:
 ...
-P: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 3, UDP Bytes: 120
-IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes: 153
-IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes: 153
+IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 3, UDP Bytes: 120
+IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes: 153  # Recieved another tc UDP packet
 ```
 
 #### Test with `iperf3`
