@@ -21,7 +21,8 @@ struct ip_proto_stats {
 // Map name "ip_xxx_map" has to match the user space code.
 struct {
     __uint(type, BPF_MAP_TYPE_LRU_HASH);
-    __uint(max_entries, 1024); // Track up to 1024 IPs
+    // TODO: needs to be updated in production.
+    __uint(max_entries, 1024); // Track up to 1024 IPs. 
     __type(key, __u32);  // IPv4 Address
     __type(value, struct ip_proto_stats);
 } ip_src_map SEC(".maps");
@@ -31,6 +32,7 @@ int src_ip_counter(struct __sk_buff *skb) {
     void *data = (void *)(long)skb->data;  // start of the packet
     void *data_end = (void *)(long)skb->data_end;  // end of the packet
 
+    // Memory overflow examination is a must-have to pass the eBPF program compiling.
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end)
         return TC_ACT_OK;
@@ -46,7 +48,7 @@ int src_ip_counter(struct __sk_buff *skb) {
     // The CPU is small endian.
     // To make it human readable, transfer to big endian (ntoh) in user space.
     __u32 ip_key = ip->saddr;
-    if (ip_key == 0)  // ignore 0.0.0.0 or whatever bug cause it
+    if (ip_key == 0)  // ignore 0.0.0.0 for whatever cause it.
         return TC_ACT_OK;
 
     __u16 payload_len = bpf_ntohs(ip->tot_len);
