@@ -22,6 +22,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
   
    B. Attach the ELF object to a XDP network interface.
    - Attach the compiled program to a network interface "net_iface": `sudo ip link set dev <net_iface> <xdp | xdpgeneric> obj <elf_obj>.o sec <sec_name>`
+   - If there is an error, check it with `sudo dmesg | grep -i xdp`. For example, when MTU=9000, `dmesg` will print the information on XDP *native/driver* mode is not allowed, 
    - Verify it with `ip link show dev <net_iface>`.
         ```bash
         # A link device with XDP (driver mode) attached
@@ -34,7 +35,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
         # Turn off the XDP hook
         nvidarm:~/tc-metric/traffic_counter> sudo ip link set dev enP2s1f0np0 xdp off
 
-        # A normal link device without XDP
+        # A normal link device without XDP. No XDP line.
         nvidarm:~/tc-metric/traffic_counter> ip link show dev enP2s1f0np0
         4: enP2s1f0np0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 3498 qdisc mq state UP mode DEFAULT group default qlen 1000
         link/ether 08:c0:eb:f1:5c:58 brd ff:ff:ff:ff:ff:ff
@@ -84,7 +85,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
     ```
    C. Turn off the XDP hook.
    ```bash
-   sudo ip link set dev enP2s1f0np0 xdp off
+   sudo ip link set dev enP2s1f0np0 <xdp | xdpgeneric> off  # must match the XDP turn-on mode
    ```
 
     Finally verify that not eBPF map showed up via `sudo bpftool map show`.
