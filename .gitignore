@@ -24,3 +24,6 @@ go.work.sum
 
 # env file
 .env
+
+# Platform-specific header files
+simple-tc-demo/vmlinux.h
