@@ -1,3 +1,11 @@
+/**
+ * Simple eBPF TC program to print the incoming packet's IPv4 address,
+ * length, TTL using bpf_printk.
+ * 
+ * Cheked-in date: Feb 17, 2025
+ * Author: xmei@jlab.org, ChatGPT
+ */
+
 #include "vmlinux.h"
 
 #include <bpf/bpf_endian.h>
@@ -34,8 +42,7 @@ int tc_ingress(struct __sk_buff *ctx)
     __u32 src_ip = bpf_ntohl(l3->saddr);
 
     bpf_printk("Got IP packet: [src IP: %u], tot_len: %d, ttl: %d",
-        src_ip,
-        bpf_ntohs(l3->tot_len), l3->ttl);
+        src_ip, bpf_ntohs(l3->tot_len), l3->ttl);
 
     return TC_ACT_OK;
 }

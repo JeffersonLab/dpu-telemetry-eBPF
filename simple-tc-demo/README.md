@@ -1,7 +1,7 @@
 
 ## A simple eBPF traffic control (TC) example
 
-A simple example to write and compile eBPF tc programs. It is using [`bpf_printk`](https://docs.ebpf.io/ebpf-library/libbpf/ebpf/bpf_printk/) to print results to the kernel trace log, where on Ubuntu system, at `/sys/kernel/debug/tracing/trace_pipe`.
+A simple example to write and compile eBPF TC programs. It is using [`bpf_printk`](https://docs.ebpf.io/ebpf-library/libbpf/ebpf/bpf_printk/) to print results to the kernel trace log, where on Ubuntu system, at `/sys/kernel/debug/tracing/trace_pipe`.
 
 The sample code is taken from the tutorial at https://eunomia.dev/en/tutorials/20-tc/#writing-ebpf-programs.
 
@@ -16,10 +16,10 @@ The sample code is taken from the tutorial at https://eunomia.dev/en/tutorials/2
      On my RL8 laptop and "nvidarm", `bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h`.
    - Compile and build the program.
 
-3. Run the eBPF object:
+3. Run the eBPF object.
    - Add the compiled object to the network device's `qdis` and `filter` rules.
    - Read the tracing logs.
-4. Cleanup the rules:
+4. Cleanup the TC rules. Refer to [traffic_counter](../traffic_counter/README.md) for detailed TC hook attach and detach process.
 
 
 
@@ -39,5 +39,3 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe | grep bpf
 Follow [this doc](https://docs.google.com/document/d/1HD9Kl1NmDHEd3fA-lk71VtIeaRk823jnvbbTyF6ozoM/edit?tab=t.1mdhq355iate#heading=h.txbm8aif3pua) to see how I make the [tutorial](https://docs.google.com/document/d/1HD9Kl1NmDHEd3fA-lk71VtIeaRk823jnvbbTyF6ozoM/edit?tab=t.1mdhq355iate#heading=h.txbm8aif3pua) demo code working on my Linux kernel 4.8 laptop.
 
 `sudo` is required for nearly every process.
-
-A better README will be provided after I gain more knowledge.
