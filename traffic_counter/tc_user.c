@@ -29,7 +29,7 @@ int main() {
         return 1;
     }
 
-    printf("Tracking per-IP TCP/UDP traffic:\n");
+    printf("Receiving per-IP TCP/UDP traffic:\n");
 
     while (1) {
         key = 0;

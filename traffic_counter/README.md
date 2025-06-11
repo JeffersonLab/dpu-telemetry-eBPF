@@ -11,8 +11,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
 
 1. Compile the eBPF program into an ELF (excutable and linkable) object.
     ```bash
-    sudo clang -O2 -g -target bpf -I/usr/include/aarch64-linux-gnu -c <kernel_program>.c -o <elf_obj>.o  # "-g" is required to show debug information
-    # tc_ip_counter.o is the one to attach
+    $ sudo clang -O2 -g -target bpf -I/usr/include/aarch64-linux-gnu -c <kernel_program>.c -o <elf_obj>.o  # "-g" is required to show debug information
     ```
 2. Attach the compiled ELF object with XDP/TC hooks.
    
@@ -21,6 +20,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
    - Attach the program: `sudo tc filter add dev <net_iface> <ingress | egress> bpf da obj <elf_obj>.o sec <sec_name>`. `<sec_name>` needs to match the "SEC" information in the kernel code.
   
    B. Attach the ELF object to a XDP network interface.
+   - (Optional) Set the network interface's MTU to 3498 to enable the XDP *driver* or *native* mode: `sudo ip link set <net_iface> mtu 3498`
    - Attach the compiled program to a network interface "net_iface": `sudo ip link set dev <net_iface> <xdp | xdpgeneric> obj <elf_obj>.o sec <sec_name>`
    - If there is an error, check it with `sudo dmesg | grep -i xdp`. For example, when MTU=9000, `dmesg` will print the information on XDP *native/driver* mode is not allowed, 
    - Verify it with `ip link show dev <net_iface>`.
@@ -80,12 +80,12 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
     ```
    B. Delete the TC rules.
     ```bash
-    $ sudo tc filter del dev enP2s1f0np0 ingress
-    $ sudo tc qdisc del dev enP2s1f0np0 clsact
+    $ sudo tc filter del dev <net_iface> <ingress | egress>
+    $ sudo tc qdisc del dev <net_iface> clsact
     ```
    C. Turn off the XDP hook.
    ```bash
-   sudo ip link set dev enP2s1f0np0 <xdp | xdpgeneric> off  # must match the XDP turn-on mode
+   sudo ip link set dev <net_iface> <xdp | xdpgeneric> off  # must match the XDP turn-on mode
    ```
 
     Finally verify that not eBPF map showed up via `sudo bpftool map show`.
@@ -96,7 +96,7 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
 #### Test with `nc`
 Try to generate some UDP/TCP traffic and watch for the userspace outputs. I have validated via the `nc` low speed approach:
 
-1. On `nvidarm`, start a nc UDP server in keep listening mode: `nc -l -u -k <port_number>`;
+1. On `nvidarm`, start a `nc` UDP server in keep listening mode: `nc -l -u -k <port_number>`;
 2. On another node, send UDP traffic to `nvidarm`'s high speed Ethernet IP, 129.57.177.126, `nc -u 129.57.177.126 <port_number>`.
 
 While sending these UDP traffic, you should be able to see the value printed to the screen changes, and the IP address match your test case.

@@ -23,16 +23,17 @@
 #include "tc_common.h"
 
 // If the map name ("map_in_xdp" here) is too long, it will be truncated.
-// TODO: check if PERCORE eBPF Map is needed to meet the high speed traffic needs.
+/// TODO: check if PERCORE eBPF Map is needed to meet the high speed traffic needs.
 struct {
     __uint(type, BPF_MAP_TYPE_LRU_HASH);
-    __uint(max_entries, 2048);   // TODO: fixed number of entries will cause loss of statistics.
+    /// TODO: fixed number of entries will cause loss of statistics.
+    __uint(max_entries, 2048);
     __type(key, struct traffic_key_t);
     __type(value, struct traffic_val_t);
 } map_in_xdp SEC(".maps");  // "map_in_xdp" will the map name to be attached to network devices
 
 
-/* Section to attach via `ip -force link set dev <net_iface> xdp obj <xdp_kernel_obj>.o sec <sec_name>` */
+/* Section to attach via `ip link set dev <net_iface> xdp obj <xdp_kernel_obj>.o sec <sec_name>` */
 SEC("xdp-ing")
 int xdp_ingress(struct xdp_md *ctx) {
     void *data = (void *)(long)ctx->data;
@@ -74,7 +75,7 @@ int xdp_ingress(struct xdp_md *ctx) {
     }
 
     // Update the Map's value field.
-    __u16 payload_len = bpf_ntohs(ip->tot_len);
+    __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
     __sync_fetch_and_add(&val->packets, 1);
     __sync_fetch_and_add(&val->bytes, payload_len);
 

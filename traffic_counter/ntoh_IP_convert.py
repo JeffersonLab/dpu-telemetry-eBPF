@@ -1,5 +1,5 @@
 """
-A helper program to convert a networking u32 number into an
+A helper program to convert a networking u32 number to an
  IPv4 address printed as xx.xx.xx.xx
 
 Example:

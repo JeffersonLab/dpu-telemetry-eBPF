@@ -91,11 +91,13 @@ Reported maximum UDP performance is 97.1 Gbps with 25 parallel sending streams. 
 ### Advanced Optimization Tips
 
 ```bash
-sudo ip link set dev enp193s0f1np1 mtu 9000  # Set NIC to use jumbo frames:
-sudo ethtool -K enp193s0f1np1 gro off gso off tso off  # Disable offloads (optional for benchmarking)
+iperf3 -c <client_ip> -B <server_ip> --bytes <target_payload_bytes>  # Send a total of <target_payload_bytes>B payload data. Values too small do not have effect.
+sudo ip link set <net_iface> mtu 9000  # Set NIC to use jumbo frames:
 sudo cpupower frequency-set -g performance  # Ensure CPU governor is set to performance
 taskset -c 2-3 iperf3 ...  # Bind interrupts and processes to specific cores (advanced)
 iftop -i <dev_name>  # Monitoring realtime ip interface usage
+sudo ethtool -K <net_iface> tso off gso off gro off # Turn off NIC offloading (sending large segments from kernel to TCP)
+sudo ethtool -K enP2s1f0np0 tso on gso on gro on  # Recover the above change.
 ```
 
 Tune the sender and receiver buffer size.
@@ -105,7 +107,7 @@ sysctl net.core.rmem_max    # check the maximum receive buffer size
 sysctl net.core.rmem_default  # check the default receive buffer size
 sysctl net.core.wmem_max   # check the maximum send buffer size
 sysctl net.core.wmem_default   # check the default send buffer size
-# Set the buffer size to 128 MB
+# Set the buffer size to 128 MiB
 sudo sysctl -w net.core.wmem_max=134217728
 sudo sysctl -w net.core.wmem_default=134217728
 sudo sysctl -w net.core.rmem_max=134217728
