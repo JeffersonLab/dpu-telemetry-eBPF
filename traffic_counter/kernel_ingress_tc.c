@@ -11,10 +11,10 @@
 
 #include "tc_common.h" // header file for this project only
 
-/// TODO: check if PERCORE eBPF Map is needed to meet the high speed traffic needs.
+
 struct {
-    __uint(type, BPF_MAP_TYPE_LRU_HASH);
-    /// TODO: fixed number of entries will cause loss of statistics.
+    __uint(type, BPF_MAP_TYPE_LRU_PERCPU_HASH);
+    /// NOTE: fixed number of entries will cause loss of statistics.
     __uint(max_entries, 2048);
     __type(key, struct traffic_key_t);
     __type(value, struct traffic_val_t);
@@ -68,9 +68,8 @@ int tc_egress(struct __sk_buff *skb) {
     }
 
     // Update the Map's value field.
-    __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
-    __sync_fetch_and_add(&val->packets, 1);
-    __sync_fetch_and_add(&val->bytes, payload_len);
+    val->packets += 1;
+    val->bytes += bpf_ntohs(ip->tot_len);  // L3 and above length
         
     return TC_ACT_OK;
 }
