@@ -1,7 +1,6 @@
 ## Traffic counter by IPv4 addresses
 
 
-
 ```bash
 sudo apt install linux-source
 ```

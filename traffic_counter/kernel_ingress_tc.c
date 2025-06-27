@@ -1,3 +1,11 @@
+/**
+ * The TC kernel program to count the incoming IPv4 TCP/UDP packets.
+ *
+ * Checked-in date: June 9, 2025
+ * Author: xmei@jlab.org, ChatGPT
+ * Test: "nvidarm" Host
+ */
+
 #include <linux/bpf.h>  // needs -I/usr/include/aarch64-linux-gnu when compile & build
 #include <linux/pkt_cls.h>  // #define TC_ACT_OK 0
 #include <linux/if_ether.h>  // #define ETH_P_IP 0x0800

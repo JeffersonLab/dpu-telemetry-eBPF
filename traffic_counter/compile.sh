@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Compile the kernel codes into ELF objects of the same names.
+
 # Kernel c code
 kernels=("kernel_ingress_tc" "kernel_egress_tc" "kernel_ingress_xdp")
 
