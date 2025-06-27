@@ -1,11 +1,14 @@
 #!/bin/bash
 
 # Generate large amount of packets indicated by $PKT_COUNT with a single CPU core.
+# Kernel pktgen reference:
+#       https://cm-gitlab.stanford.edu/ntonnatt/linux/-/tree/master/samples/pktgen
 #
 # Usage:
 #       sudo bash <this-script>.sh <src-iface> <src-core> <dst-ip> <dst-mac>
 #
 # Check the output with "sudo cat /proc/net/pktgen/<iface>"
+#
 
 # Interface to use
 SRC_IFACE=$1   # find the 100+ Gbps Ethernet one on local host
@@ -15,7 +18,8 @@ SRC_CORE=$2   # good for NUMA pinning
 DST_IP=$3    # destination IP address, get from "ip show -br a"
 DST_MAC=$4    # destination MAC address, get from "ip link show <iface>"
 PKT_COUNT=1000000
-PKT_SIZE=64     # bytes including L2 header, corresponds to the minimum Ethernet frame size.
+# Minimum Ethernet frame size is 64 bytes. NIC will add 4 bytes of CRC (Cyclic Redundancy Check).
+PKT_SIZE=60     # bytes including L2 header
 THREADS=1       # number of CPU cores to use
 
 # Clear existing configuration
