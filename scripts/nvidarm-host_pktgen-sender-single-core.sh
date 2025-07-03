@@ -47,6 +47,11 @@ echo "udp_dst_max 1234"        > $PGDEV
 echo "Running pktgen..."
 echo "start" > /proc/net/pktgen/pgctrl
 
+# Result stats
+statline=$(tail -n 1 /proc/net/pktgen/$SRC_IFACE)
+  pps=$(echo "$statline" | grep -oP '\d+(?=pps)')
+  echo "$pps"
+
 # xmei@nvidarm:~/tc-metric/scripts$ sudo cat /proc/net/pktgen/enP2s1f0np0 
 # Params: count 1000000  min_pkt_size: 60  max_pkt_size: 60
 #      frags: 0  delay: 0  clone_skb: 0  ifname: enP2s1f0np0
