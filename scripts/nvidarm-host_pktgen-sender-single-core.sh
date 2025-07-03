@@ -17,11 +17,13 @@ SRC_CORE=$2   # good for NUMA pinning
 # Packet parameters
 DST_IP=$3    # destination IP address, get from "ip -br a"
 DST_MAC=$4    # destination MAC address, get from "ip link show <iface>"
-PKT_COUNT=1000000
+
 # Minimum Ethernet frame size is 64 bytes? NIC will add 4 bytes of CRC (Cyclic Redundancy Check).
-# Minimum value deduced from the sender pktgen output is 42 (42+14+4+4=64).
+# Minimum value deduced from the sender pktgen output is 42.
 # However, view from the receiver side /proc/net/dev, minimum packet size is 60.
-PKT_SIZE=60
+# IP+UDP = 28B, L2 header=14B => 60B payload = 64B total
+PKT_SIZE=60     # in bytes
+PKT_COUNT=1000000
 THREADS=1       # number of CPU cores to use
 
 # Clear existing configuration
