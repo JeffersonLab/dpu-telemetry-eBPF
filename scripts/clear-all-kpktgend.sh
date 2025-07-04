@@ -2,10 +2,10 @@
 
 # Clear all the pktgen setting on all of the cores.
 
-END_CORE_NUM=$1
+TOTAL_CORES=$1
 
 # Clean previous config
-for ((i=0; i<${END_CORE_NUM}; i++)); do
+for ((i=0; i<${TOTAL_CORES}; i++)); do
   echo "rem_device_all" > /proc/net/pktgen/kpktgend_$i
 done
 

@@ -12,7 +12,7 @@
 
 # Interface to use
 SRC_IFACE=$1   # find the 100+ Gbps Ethernet one on local host
-SRC_CORE=$2   # good for NUMA pinning
+SRC_CORE=$2   # good for NUMA pinning. 29 on "nvidarm" host.
 
 # Packet parameters
 DST_IP=$3    # destination IP address, get from "ip -br a"
@@ -29,7 +29,7 @@ THREADS=1       # number of CPU cores to use
 # Clear existing configuration
 # The below line is bug-triggering if we do not use kpktgend_x last time
 echo "rem_device_all" > /proc/net/pktgen/kpktgend_${SRC_CORE}
- # NUMA node 1-cores 20-39 on "nvidarm"
+ # NUMA node 1-cores 20-39 on "nvidarm" host.
 echo "add_device $SRC_IFACE" > /proc/net/pktgen/kpktgend_${SRC_CORE}
 
 # Configure pktgen device

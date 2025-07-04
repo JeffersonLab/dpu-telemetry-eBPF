@@ -17,4 +17,6 @@ I was only able to install it on the JLab "nvidarm" node.
     ```bash
     modinfo pktgen
     ```
-2. Run the `pktgen` experiments within the [scripts](../scripts/) folder. Remember after each run, clear the `pktgen` setting with [clear-all-kpktgend.sh](../scripts/clear-all-kpktgend.sh). The scripts already assigned core number explicitly. 
+2. Run the `pktgen` sender experiments within the [scripts](../scripts/) folder. The scripts already assigned core number explicitly. 
+
+    Remember before each run, clear the `pktgen` setting of all the CPU cores with [clear-all-kpktgend.sh](../scripts/clear-all-kpktgend.sh). 
