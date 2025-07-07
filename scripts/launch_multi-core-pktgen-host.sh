@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Send to ejfat-6 for multiple times
+# launch it with numactl -C 20-39 to explicitly set the CPU cores.
 
 # Update before use!!!
 DST_MAC=10:70:fd:df:8e:37

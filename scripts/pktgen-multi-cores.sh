@@ -24,7 +24,7 @@ done
 
 # Add devices
 for ((i=${START_CORE_NUM}; i<=${END_CORE_NUM}; i++)); do
-  # echo "Adding device ${SRC_IFACE}@${i} to thread $i"
+  # echo "Adding device ${SRC_IFACE}@${i} to core $i"
   echo "add_device ${SRC_IFACE}@${i}" > /proc/net/pktgen/kpktgend_${i}
 done
 
@@ -32,6 +32,7 @@ done
 for ((i=${START_CORE_NUM}; i<=${END_CORE_NUM}; i++)); do
   DEV="${SRC_IFACE}@${i}"
   echo "Configuring $DEV"
+  # clone_skb 1 means reuse skb structure
   echo "clone_skb 0" > /proc/net/pktgen/${DEV}
   echo "pkt_size $PKT_SIZE" > /proc/net/pktgen/${DEV}
   echo "count $PKT_COUNT" > /proc/net/pktgen/${DEV}
