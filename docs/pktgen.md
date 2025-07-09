@@ -1,6 +1,6 @@
 ## Using `pktgen` to generate huge amount of UDP packets at maximum speed
 
-I was only able to install it on the JLab "nvidarm" node.
+I was only able to install it on the JLab "nvidarm" node. On "ejfat-6", I tried hard but did not sort out.
 
 1. `pktgen` is built as a kernel module. Check if it’s already loaded:
 
