@@ -55,8 +55,6 @@ fi
 # Apply to interfaces
 for IFACE in "${IFACES[@]}"; do
   echo "Configuring interface: $IFACE"
-  
-  sudo ip link set dev "$IFACE" up
 
   if $SET_RX; then
     echo "  - Setting RX ring buffer to $RX_SIZE"
