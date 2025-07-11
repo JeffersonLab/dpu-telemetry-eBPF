@@ -68,10 +68,10 @@ IP: 129.57.177.6 - TCP Packets: 14153635, TCP Bytes: 739151234907 | UDP Packets:
 
 ### UDP Test at Line Rate
 ```bash
-iperf3 -c <server_ip> -B <client_ip> -u -b <Gbps>G -t 60 -P 4 -l 8948
+iperf3 -c <server_ip> -B <client_ip> -u -b <Gbps>G -t 60 -P 4 -l 8498
 # -u: Use UDP
 # -b: Target bandwidth in bitrate
-# -l 8948: the length of each packet when MTU=9000
+# -l 8948: the length of each UDP packet when MTU=9000
 ```
 
 Single stream performance (without option `-P x`, with option `-b 100G`)
