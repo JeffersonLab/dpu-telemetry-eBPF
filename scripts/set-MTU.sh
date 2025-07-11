@@ -5,7 +5,7 @@
 # Usage: this-script.sh <mtu_in_bytes>
 
 # UPDATE the target interfaces here. The below ifaces are for "nvidarm" DPU.
-IFACES=("pf0hpf" "p0" "ovsbr1" "en3f0pf0sf0" "enp3s0f0s0")
+IFACES=("pf0hpf" "p0" "ovsbr1" "ovs-system", "en3f0pf0sf0" "enp3s0f0s0")
 
 MTU_SIZE=$1
 

@@ -54,12 +54,15 @@ The below process is test and verified on "nvidarm" with the DPU Ethernet addres
     $ sudo bpftool map dump id 6 # dump by id
     ## Output example
     [{
-            "key": 531773825,  # need ntoh transfer before printing out the IP
+            "key": {
+                "ip": 112277889,
+                "proto": 6,
+                "pad": [0,0,0
+                ]
+            },
             "value": {
-                "tcp_bytes": 0,
-                "tcp_packets": 0,
-                "udp_bytes": 63,
-                "udp_packets": 2
+                "packets": 173416415,
+                "bytes": 257392610459
             }
         }
     ]

@@ -96,7 +96,10 @@ sudo ip link set <net_iface> mtu 9000  # Set NIC to use jumbo frames:
 sudo cpupower frequency-set -g performance  # Ensure CPU governor is set to performance
 taskset -c 2-3 iperf3 ...  # Bind interrupts and processes to specific cores (advanced)
 iftop -i <dev_name>  # Monitoring realtime ip interface usage
-sudo ethtool -K <net_iface> tso off gso off gro off # Turn off NIC offloading (sending large segments from kernel to TCP)
+
+# Below I am unfarmilar with
+# Turn off NIC offloading (sending large segments from kernel to TCP)
+sudo ethtool -K <net_iface> tso off gso off gro off
 sudo ethtool -K enP2s1f0np0 tso on gso on gro on  # Recover the above change.
 ```
 
