@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 for p in 4 8; do
     OUTFILE="iperf3_P${p}.log"
     > "$OUTFILE"  # Clear previous results once per p
