@@ -4,7 +4,7 @@
 # This is an example for the "nvidarm" Host.
 
 # UPDATE this line before usage
-numactl -C 20-39 --membind=1 iperf3 -B 129.57.177.126 -c 129.57.177.6 --bidir -P 8 -t 60 -i 60 &
+taskset -c 80-95 iperf3 -B 129.57.177.6 -c 129.57.177.126 --bidir -P 8 -t 60 -i 60 &
 
 iperf_pid=$!
 
@@ -12,7 +12,8 @@ echo "Started iperf3 with PID $iperf_pid"
 echo "Monitoring all iperf3-related CPU usage..."
 
 # Start monitoring all iperf3 processes with pidstat
-pidstat -C iperf3 1 > pidstat.log &   # 1 is monitor interval
+pidstat -p $iperf_pid 1 > pidstat.log &   # 1 is monitor interval
+# pidstat -C iperf3 1 > pidstat.log &   # monitor all iperf3 threads, not by pid. Similar results
 pidstat_pid=$!
 
 # Wait for iperf3 to finish
