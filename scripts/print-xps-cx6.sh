@@ -3,6 +3,9 @@
 # Usage: run this on nvidarm host with $IFACE to check the TX queue to CPU core mapping.
 # XPS: transmit packet steering.
 
+# Output in a sorted order
+# cfor i in $(ls /sys/class/net/enP2s1f0np0/queues/tx-*/xps_cpus | sort -V); do   cat "$i"; done
+#
 # Output on nvidarm Host, NUMA cores 20-39 mapped to TX-queue 0-19.
 # /sys/class/net/enP2s1f0np0/queues/tx-0/xps_cpus: 20
 # /sys/class/net/enP2s1f0np0/queues/tx-10/xps_cpus: 30
