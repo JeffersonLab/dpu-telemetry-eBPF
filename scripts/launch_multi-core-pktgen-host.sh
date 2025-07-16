@@ -9,9 +9,9 @@ DST_IP=129.57.177.6
 
 SRC_IFACE=enP2s1f0np0
 SRC_START_CORE_NUM=20
-SRC_END_CORE_NUM=39
+SRC_END_CORE_NUM=29
 
-for i in {1..10}; do    # Update i range before use!!!
+for i in {1..1}; do    # Update i range before use!!!
   echo "=== Run $i ==="
   sudo bash pktgen-multi-cores.sh \
     $SRC_IFACE $SRC_START_CORE_NUM $SRC_END_CORE_NUM \

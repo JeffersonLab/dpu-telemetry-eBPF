@@ -37,7 +37,8 @@ PGDEV=/proc/net/pktgen/$SRC_IFACE
 echo "count $PKT_COUNT"        > $PGDEV
 echo "clone_skb 0"             > $PGDEV
 echo "pkt_size $PKT_SIZE"      > $PGDEV
-echo "delay 0"                 > $PGDEV
+# Controlled delay, 0 for no delay
+echo "delay 2000"              > $PGDEV   # 2000 in nanoseconds, 0.5 M packet per second
 echo "dst $DST_IP"             > $PGDEV
 echo "dst_mac $DST_MAC"        > $PGDEV
 echo "udp_dst_min 1234"        > $PGDEV

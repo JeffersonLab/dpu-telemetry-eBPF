@@ -14,8 +14,8 @@ echo "Total threads: $THREADS"
 DST_IP=$4    # destination IP address, get from "ip -br a"
 DST_MAC=$5    # destination MAC address, get from "ip link show <iface>"
 
-PKT_SIZE=60     # IP+UDP = 28B, L2 header=14B => 60B payload = 64B total
-PKT_COUNT=1000000   # NUmber of packets to send per core
+PKT_SIZE=8996     # IP+UDP =28B, L2 header=14B => 60B payload = 64B total
+PKT_COUNT=1000000   # Number of packets to send per core
 
 # Clean previous config
 for ((i=0; i<=${END_CORE_NUM}; i++)); do
@@ -36,7 +36,9 @@ for ((i=${START_CORE_NUM}; i<=${END_CORE_NUM}; i++)); do
   echo "clone_skb 0" > /proc/net/pktgen/${DEV}
   echo "pkt_size $PKT_SIZE" > /proc/net/pktgen/${DEV}
   echo "count $PKT_COUNT" > /proc/net/pktgen/${DEV}
-  echo "delay 0" > /proc/net/pktgen/${DEV}
+  # delay=0 means sending at maixmum rate
+  # echo "delay 0" > /proc/net/pktgen/${DEV}
+  echo "delay 26000" > /proc/net/pktgen/${DEV}
   echo "dst_mac $DST_MAC" > /proc/net/pktgen/${DEV}
   echo "dst $DST_IP" > /proc/net/pktgen/${DEV}
   echo "flag QUEUE_MAP_CPU" > /proc/net/pktgen/${DEV}
