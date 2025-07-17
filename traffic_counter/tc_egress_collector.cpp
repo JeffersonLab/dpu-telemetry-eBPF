@@ -69,9 +69,7 @@ void handle_signal(int) {
 
 std::shared_mutex data_mutex;
 std::map<time_t, std::map<uint32_t, PerExportBinsByIP>> metric_bins;
-// std::map<uint32_t, LastSeen> last_seen;
-// std::set<time_t> dumped_ts;
-//----------------------------------
+bool first_report = true;
 
 void print_latest_metric_bin() {
     std::unique_lock lock(data_mutex);
@@ -264,19 +262,23 @@ void print_in_json(
     json j_ts;
 
     for (const auto& [ip, bins] : metric_bins[ts]) {
-        bool zero_flag = true;
         json j_ip;
 
-        __u64 last_tbytes = last_seen[ip].tcp_bytes;
-        __u64 last_ubytes = last_seen[ip].udp_bytes;
+        if (first_report) {
+            last_seen[ip].tcp_bytes = bins.tcp_bytes.front();
+            last_seen[ip].tcp_packets = bins.tcp_packets.front();
+            last_seen[ip].udp_bytes = bins.udp_bytes.front();
+            last_seen[ip].udp_packets = bins.udp_packets.front();
+            first_report = false;
+        }
 
-        if (last_tbytes != bins.tcp_bytes.back()) {
+        if (last_seen[ip].tcp_bytes != bins.tcp_bytes.back()) {
             j_ip["tcp_bytes"]   = get_diff_vector(bins.tcp_bytes,   last_seen[ip].tcp_bytes);
             j_ip["tcp_packets"] = get_diff_vector(bins.tcp_packets, last_seen[ip].tcp_packets);
             last_seen[ip].tcp_bytes = bins.tcp_bytes.back();
             last_seen[ip].tcp_packets = bins.tcp_packets.back();
         }
-        if (last_ubytes != bins.udp_bytes.back()) {
+        if (last_seen[ip].udp_bytes != bins.udp_bytes.back()) {
             j_ip["udp_bytes"]   = get_diff_vector(bins.udp_bytes,   last_seen[ip].udp_bytes);
             j_ip["udp_packets"] = get_diff_vector(bins.udp_packets, last_seen[ip].udp_packets);
             last_seen[ip].udp_bytes = bins.udp_bytes.back();
