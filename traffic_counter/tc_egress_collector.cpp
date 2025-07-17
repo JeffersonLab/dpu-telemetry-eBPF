@@ -1,6 +1,18 @@
 /**
+ * Collect local egress network traffic by destination IPv4 addresses at up to 1000 Hz per second.
+ * Output the report in a JSON format.
  * 
- * g++ -std=c++17 -O2 tc_egress_collector.cpp -o tc_egress_collector.o -lbpf -pthread
+ * Need to pin the egress eBPF map first. By default pinned to "/sys/fs/bpf/tc-eg".
+ * 
+ * Compile without CMakeLists.txt:
+ *   g++ -std=c++17 -O2 tc_egress_collector.cpp -o tc_egress_collector.o -lbpf -pthread
+ * 
+ * Run it with sudo:
+ *   sodu ./tc_egress_collector.o -p|--poll-frequency 100
+ * 
+ * @author: xmei@jlab.org, ChatGPT (for debugging and doc string)
+ * First checked in @date: July 16, 2025
+ * @test on "nvidarm" with unidirectional traffic of up to 2000 Hz.
 */
 
 
@@ -24,18 +36,21 @@
 #include <netinet/in.h>  // For ntohl
 #include <arpa/inet.h>   // For inet_ntop
 
-#include "json.hpp"
+#include "json.hpp" // external files downloaded online
 #include "tc_common.h" // header file for this project only
+
 
 using json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
 
-// ----- Configurable Parameters -----
+
+// ++----- Default Command-Line Parameters -----
 int poll_hz = 50;
 std::string map_path = "/sys/fs/bpf/tc-eg";
+/// TODO: now it's fixed at reporting every 1 second. See if we need to enlarge it.
 int export_interval = 1;
-std::string output_path = "output-json.out";
+// ---------------------------------------
 
 
 struct PerExportBinsByIP {
@@ -54,6 +69,7 @@ struct PerExportBinsByIP {
     }
 };
 
+
 struct LastSeen {
     __u64 tcp_bytes = 0;
     __u64 tcp_packets = 0;
@@ -61,16 +77,35 @@ struct LastSeen {
     __u64 udp_packets = 0;
 };
 
-// ----- Global Shared State -----
+
+// ++---- Global Shared State -----
 std::atomic<bool> running(true);
 void handle_signal(int) {
     running = false;
 }
 
 std::shared_mutex data_mutex;
+
+/**  TODO: MAJOR @bug
+This timestamp-x map structure will keep growing as long as the time progresses, thus finally eating up all the memory.
+Make it ring buffer style that stores up to xxx entries (bencharking for the optimal xxxx number?).
+*/
 std::map<time_t, std::map<uint32_t, PerExportBinsByIP>> metric_bins;
 bool first_report = true;
+// -----------------------------
 
+/**
+ * @brief A helper function to return the time in second_id.
+ */
+time_t now_sec() {
+    return std::chrono::duration_cast<std::chrono::seconds>(
+        Clock::now().time_since_epoch()
+    ).count();
+}
+
+/**
+ * @brief A helper function to print the per-second native report structure of last second.
+ */
 void print_latest_metric_bin() {
     std::unique_lock lock(data_mutex);
 
@@ -102,12 +137,6 @@ void print_latest_metric_bin() {
 
 }
 
-
-time_t now_sec() {
-    return std::chrono::duration_cast<std::chrono::seconds>(
-        Clock::now().time_since_epoch()
-    ).count();
-}
 
 /**
  * @brief Compute the difference between consecutive values in a cumulative snapshot vector.
@@ -142,31 +171,6 @@ std::vector<__u64> get_diff_vector(const std::vector<__u64>& snapshot, const __u
     }
 
     return diff;
-}
-
-
-void print_usage(const char* prog) {
-    std::cerr << "Usage: " << prog <<\
-        " [-p poll-hz] [-e export-interval][-m map-path] [-o output-path]" << std::endl;
-}
-
-void parse_args(int argc, char** argv,
-    int& poll_hz, int & interval, std::string& map_path, std::string& output_path) {
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if ((arg == "-p" || arg == "--poll-hz") && i + 1 < argc) {
-            poll_hz = std::stoi(argv[++i]);
-        } else if ((arg == "-e" || arg == "--export-interval") && i + 1 < argc) {
-            export_interval = std::stoi(argv[++i]);
-        } else if ((arg == "-m" || arg == "--map-path") && i + 1 < argc) {
-            map_path = argv[++i];
-        } else if ((arg == "-o" || arg == "--output-path") && i + 1 < argc) {
-            output_path = argv[++i];
-        } else {
-            print_usage(argv[0]);
-            exit(1);
-        }
-    }
 }
 
 /**
@@ -257,6 +261,14 @@ void append_snapshot_to_metric_bins(
 }
 
 
+/**
+ * @brief At the end of each second, transfer the snapshot bins into diff arrays and dump into json.
+ * 
+ * TODO: need to send the json data out online.
+ * 
+ * @param ts        The second of data needs to be processed.
+ * @param last_seen A map to track the last seen packet/byte values of an IP addresses.
+ */
 void print_in_json(
     const time_t ts, std::map<uint32_t, LastSeen>& last_seen) {
     json j_ts;
@@ -264,6 +276,7 @@ void print_in_json(
     for (const auto& [ip, bins] : metric_bins[ts]) {
         json j_ip;
 
+        // Fisrt-time initialization to avoid first data-point spike.
         if (first_report) {
             last_seen[ip].tcp_bytes = bins.tcp_bytes.front();
             last_seen[ip].tcp_packets = bins.tcp_packets.front();
@@ -317,12 +330,11 @@ void print_in_json(
  *
  * @param map_path        Path to the pinned BPF map in the BPF filesystem (e.g., /sys/fs/bpf/...).
  * @param poll_hz         Number of times to poll the map per second (polling frequency in Hz).
- * @param export_interval Number of seconds to accumulate before completing an export window.
  *
  * @note This function runs as long as the global `running` flag is true.
  *       The snapshot appending is thread-safe using internal locking.
  */
-void poll_map_loop(const std::string& map_path, int poll_hz, int export_interval) {
+void poll_map_loop(const std::string& map_path, int poll_hz) {
     std::map<uint32_t, LastSeen> last_seen;
 
     int map_fd = bpf_obj_get(map_path.c_str());
@@ -359,19 +371,41 @@ void poll_map_loop(const std::string& map_path, int poll_hz, int export_interval
 }
 
 
+void print_usage(const char* prog) {
+    std::cerr << "Usage: " << prog <<" [-p poll-hz] [-m map-path]" << std::endl;
+}
+
+void parse_args(int argc, char** argv, int& poll_hz, std::string& map_path) {
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if ((arg == "-p" || arg == "--poll-hz") && i + 1 < argc) {
+            poll_hz = std::stoi(argv[++i]);
+        } else if ((arg == "-m" || arg == "--map-path") && i + 1 < argc) {
+            map_path = argv[++i];
+        } else {
+            print_usage(argv[0]);
+            exit(1);
+        }
+    }
+}
+
+
 int main(int argc, char** argv) {
-    parse_args(argc, argv, poll_hz, export_interval, map_path, output_path);
+    parse_args(argc, argv, poll_hz, map_path);
 
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
 
+    /// TODO: check if multi-threading can be applied to optimze the current code.
+
     // std::thread poller([&]() {
-    //     poll_map_loop(map_path, poll_hz, export_interval);
+    //     poll_map_loop(map_path, poll_hz);
     // });
 
-    poll_map_loop(map_path, poll_hz, export_interval);
-
     // poller.join();
+    poll_map_loop(map_path, poll_hz);
+
 
     return 0;
 }
