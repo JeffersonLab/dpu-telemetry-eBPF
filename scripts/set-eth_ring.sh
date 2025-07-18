@@ -10,6 +10,7 @@
 
 # UPDATE the target interfaces here. The below ifaces are for "nvidarm" DPU.
 # NOTE: Bridge interfaces such as "ovsbr$X" is not supported.
+#       "en3f0pf0sf0" is TX-only.
 IFACES=("pf0hpf" "p0" "en3f0pf0sf0" "enp3s0f0s0")
 
 # Default unset values
