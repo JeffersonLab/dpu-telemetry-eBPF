@@ -12,6 +12,8 @@ fi
 # Continue with the script
 echo "Using interface: $IFACE"
 
+# FIX: if attached with a hook_id/priority_id (via "pref"), must explicitly dettach with the hook id.
+
 sudo tc filter del dev $IFACE egress
 sudo tc filter del dev $IFACE ingress
 sudo tc qdisc del dev $IFACE clsact

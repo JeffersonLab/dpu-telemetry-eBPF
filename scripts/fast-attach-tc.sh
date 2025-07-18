@@ -16,10 +16,9 @@ echo "Using interface: $IFACE"
 
 DIRECTION=$1
 SEC_NAME=$2
-HOOK_ID=$3
 
 sudo tc qdisc add dev $IFACE clsact
 sudo tc filter add dev $IFACE ${DIRECTION} \
-    pref $HOOK_ID \
+    # pref $HOOK_ID \    # delete for now since it's error-probe to cause orphan hooks without carefully detach
     bpf da obj ../traffic_counter/kernel_${DIRECTION}_tc.o sec ${SEC_NAME}
 
