@@ -248,15 +248,15 @@ void append_snapshot_to_metric_bins(
     for (const auto& [ip, val] : snapshot_tcp) {
         auto& bin = metric_bins[timestamp][ip];
         bin.ensure_capacity(polling_id + 1);
-        bin.tcp_bytes[polling_id]   = val.bytes;
-        bin.tcp_packets[polling_id] = val.packets;
+        bin.tcp_bytes[polling_id]   += val.bytes;
+        bin.tcp_packets[polling_id] += val.packets;
     }
 
     for (const auto& [ip, val] : snapshot_udp) {
         auto& bin = metric_bins[timestamp][ip];
         bin.ensure_capacity(polling_id + 1);
-        bin.udp_bytes[polling_id]   = val.bytes;
-        bin.udp_packets[polling_id] = val.packets;
+        bin.udp_bytes[polling_id]   += val.bytes;
+        bin.udp_packets[polling_id] += val.packets;
     }
 }
 
@@ -359,7 +359,7 @@ void poll_map_loop(const std::string& map_path, int poll_hz) {
             polling_counter = 0;
             last_ts = now;
         }
-        
+
         if (get_snapshot_bpf_map(map_fd, snapshot_tcp, snapshot_udp) == 0) {
             append_snapshot_to_metric_bins(now, polling_counter, snapshot_tcp, snapshot_udp);
         }
