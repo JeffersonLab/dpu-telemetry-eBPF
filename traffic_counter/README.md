@@ -112,4 +112,4 @@ IP: 129.57.178.31 - TCP Packets: 12, TCP Bytes: 720 | UDP Packets: 4, UDP Bytes:
 
 #### Test with `iperf3`
 
-See the guide in [iperf3.md](../docs-general/iperf3.md).
+See the guide in [iperf3.md](../docs/iperf3.md).
