@@ -23,6 +23,9 @@ res-*/
 go.work
 go.work.sum
 
+# IDE related
+.vscode
+
 # env file
 .env
 .vscode
