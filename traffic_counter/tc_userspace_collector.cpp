@@ -1,17 +1,18 @@
 /**
- * Collect local egress network traffic by destination IPv4 addresses at up to 1000 Hz per second.
+ * Collect local network traffic by src/dst IPv4 addresses at up to 1000 Hz per second.
  * Output the report in a JSON format.
  * 
  * Need to pin the egress eBPF map first. By default pinned to "/sys/fs/bpf/tc-eg".
  * 
  * Compile without CMakeLists.txt:
- *   g++ -std=c++17 -O2 tc_egress_collector.cpp -o tc_egress_collector.o -lbpf -pthread
+ *   g++ -std=c++17 -O2 <this-file>.cpp -o <this-file>.o -lbpf -pthread
  * 
  * Run it with sudo:
- *   sodu ./tc_egress_collector.o -p|--poll-frequency 100
+ *   sudo ./<this-file>.o -p|--poll-frequency 100 -m|--map-path <path>
  * 
- * @author: xmei@jlab.org, ChatGPT (for debugging and doc string)
+ * @author: xmei@jlab.org, ChatGPT
  * First checked in @date: July 16, 2025
+ * Updated @date: Nov 11, 2025
  * @test on "nvidarm" with unidirectional traffic of up to 2000 Hz.
 */
 
@@ -70,6 +71,7 @@ struct PerExportBinsByIP {
 };
 
 
+// ++ Data structure for snapshot at fine-grained time ticks
 struct LastSeen {
     __u64 tcp_bytes = 0;
     __u64 tcp_packets = 0;
