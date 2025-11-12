@@ -8,7 +8,7 @@ The sample code is taken from the tutorial at https://eunomia.dev/en/tutorials/2
 ### Steps to compile and run the code
 1. Install dependencies:
     - Clang and LLVM: `dnf/apt install -y clang llvm`.
-    - eBPF tools: on RHEL, `dnf install -y bpf-tools bcc libbpf-devel`; on Ubuntu, `apt install -y libbpf-dev libelf-dev bcc`.
+    - eBPF tools: on RHEL, `sudo dnf install -y bcc bcc-tools bpftool libbpf libbpf-devel elfutils-libelf-devel`; on Ubuntu, `apt install -y libbpf-dev libelf-dev bcc`.
     - Linux kernel header files: `dnf/apt install -y kernel-headers-$(uname -r)`.
     - [Optional, on older Linux kernels] `dnf/apt install -y iproute2`.
 2. Build and compile the code:
