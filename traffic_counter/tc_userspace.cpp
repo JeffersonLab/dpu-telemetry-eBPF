@@ -8,7 +8,7 @@
  *   g++ -std=c++17 -O2 <this-file>.cpp -o <this-file>.o -lbpf -pthread
  * 
  * Run it with sudo:
- *   sudo ./<this-file>.o -p|--poll-frequency 100 -m|--map-path <path>
+ *   sudo ./<this-file>.o -p|--poll-frequency <target_freq> -m|--map-path <path>
  * 
  * @author: xmei@jlab.org, ChatGPT
  * First checked in @date: July 16, 2025
