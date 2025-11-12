@@ -1,0 +1,327 @@
+Poll the eBPF map at 10 Hz
+Processing the eBPF map pinned at: /sys/fs/bpf/map_out_tc
+Verbose mode: ON
+
+[INFO]	[ 1762910475]	 Polled_times = 1, elapsed_microseconds = 28
+[INFO]	[ 1762910475]	 Polled_times = 2, elapsed_microseconds = 19
+[INFO]	[ 1762910475]	 Polled_times = 3, elapsed_microseconds = 17
+[INFO]	[ 1762910475]	 Polled_times = 4, elapsed_microseconds = 16
+[INFO]	[ 1762910475]	 Polled_times = 5, elapsed_microseconds = 15
+[INFO]	[ 1762910475]	 Polled_times = 6, elapsed_microseconds = 15
+[INFO]	[ 1762910475]	 Polled_times = 7, elapsed_microseconds = 15
+[INFO]	[ 1762910475]	 Polled_times = 8, elapsed_microseconds = 16
+[INFO]	[ 1762910475]	 Polled_times = 9, elapsed_microseconds = 16
+### New tick: 1762910476, window_id=15
+[INFO]	[ 1762910476]	 Polled_times = 1, elapsed_microseconds = 146
+<before> last_seen[145832321] = (0[tcp_bytes], 0[udp_bytes])
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910476]	 Polled_times = 2, elapsed_microseconds = 24
+[INFO]	[ 1762910476]	 Polled_times = 3, elapsed_microseconds = 17
+[INFO]	[ 1762910476]	 Polled_times = 4, elapsed_microseconds = 16
+[INFO]	[ 1762910476]	 Polled_times = 5, elapsed_microseconds = 16
+[INFO]	[ 1762910476]	 Polled_times = 6, elapsed_microseconds = 20
+[INFO]	[ 1762910476]	 Polled_times = 7, elapsed_microseconds = 16
+[INFO]	[ 1762910476]	 Polled_times = 8, elapsed_microseconds = 16
+[INFO]	[ 1762910476]	 Polled_times = 9, elapsed_microseconds = 18
+[INFO]	[ 1762910476]	 Polled_times = 10, elapsed_microseconds = 23
+### New tick: 1762910477, window_id=16
+<before> last_seen[145832321] = ([INFO]	[ 1762910477]	 Polled_times = 232021, elapsed_microseconds = 114
+[tcp_bytes], 5827214028828[udp_bytes])
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910477]	 Polled_times = 2, elapsed_microseconds = 24
+[INFO]	[ 1762910477]	 Polled_times = 3, elapsed_microseconds = 20
+[INFO]	[ 1762910477]	 Polled_times = 4, elapsed_microseconds = 15
+[INFO]	[ 1762910477]	 Polled_times = 5, elapsed_microseconds = 16
+[INFO]	[ 1762910477]	 Polled_times = 6, elapsed_microseconds = 21
+[INFO]	[ 1762910477]	 Polled_times = 7, elapsed_microseconds = 22
+[INFO]	[ 1762910477]	 Polled_times = 8, elapsed_microseconds = 16
+[INFO]	[ 1762910477]	 Polled_times = 9, elapsed_microseconds = 18
+[INFO]	[ 1762910477]	 Polled_times = 10, elapsed_microseconds = 26
+### New tick: 1762910478, window_id=17
+<before> last_seen[145832321] = (23202[INFO]	[ [tcp_bytes], 58272140288281762910478[udp_bytes])
+]	 Polled_times = <after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+1, elapsed_microseconds = 127
+[INFO]	[ 1762910478]	 Polled_times = 2, elapsed_microseconds = 25
+[INFO]	[ 1762910478]	 Polled_times = 3, elapsed_microseconds = 15
+[INFO]	[ 1762910478]	 Polled_times = 4, elapsed_microseconds = 15
+[INFO]	[ 1762910478]	 Polled_times = 5, elapsed_microseconds = 15
+[INFO]	[ 1762910478]	 Polled_times = 6, elapsed_microseconds = 16
+[INFO]	[ 1762910478]	 Polled_times = 7, elapsed_microseconds = 15
+[INFO]	[ 1762910478]	 Polled_times = 8, elapsed_microseconds = 16
+[INFO]	[ 1762910478]	 Polled_times = 9, elapsed_microseconds = 16
+[INFO]	[ 1762910478]	 Polled_times = 10, elapsed_microseconds = 15
+### New tick: 1762910479, window_id=18
+[INFO]	[ 1762910479]	 Polled_times = 1, elapsed_microseconds = 82
+<before> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910479]	 Polled_times = 2, elapsed_microseconds = 22
+[INFO]	[ 1762910479]	 Polled_times = 3, elapsed_microseconds = 16
+[INFO]	[ 1762910479]	 Polled_times = 4, elapsed_microseconds = 16
+[INFO]	[ 1762910479]	 Polled_times = 5, elapsed_microseconds = 17
+[INFO]	[ 1762910479]	 Polled_times = 6, elapsed_microseconds = 15
+[INFO]	[ 1762910479]	 Polled_times = 7, elapsed_microseconds = 15
+[INFO]	[ 1762910479]	 Polled_times = 8, elapsed_microseconds = 15
+[INFO]	[ 1762910479]	 Polled_times = 9, elapsed_microseconds = 15
+[INFO]	[ 1762910479]	 Polled_times = 10, elapsed_microseconds = 16
+### New tick: 1762910480, window_id=19
+<before> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910480]	 Polled_times = 1, elapsed_microseconds = 124
+[INFO]	[ 1762910480]	 Polled_times = 2, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 3, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 4, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 5, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 6, elapsed_microseconds = 15
+[INFO]	[ 1762910480]	 Polled_times = 7, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 8, elapsed_microseconds = 17
+[INFO]	[ 1762910480]	 Polled_times = 9, elapsed_microseconds = 16
+[INFO]	[ 1762910480]	 Polled_times = 10, elapsed_microseconds = 16
+### New tick: 1762910481, window_id=20
+<before> last_seen[145832321] = (23202[tcp_bytes], [INFO]	[ 58272140288281762910481[udp_bytes])]	 Polled_times = 1, elapsed_microseconds = 86
+
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910481]	 Polled_times = 2, elapsed_microseconds = 20
+[INFO]	[ 1762910481]	 Polled_times = 3, elapsed_microseconds = 18
+[INFO]	[ 1762910481]	 Polled_times = 4, elapsed_microseconds = 16
+[INFO]	[ 1762910481]	 Polled_times = 5, elapsed_microseconds = 16
+[INFO]	[ 1762910481]	 Polled_times = 6, elapsed_microseconds = 16
+[INFO]	[ 1762910481]	 Polled_times = 7, elapsed_microseconds = 16
+[INFO]	[ 1762910481]	 Polled_times = 8, elapsed_microseconds = 16
+[INFO]	[ 1762910481]	 Polled_times = 9, elapsed_microseconds = 22
+[INFO]	[ 1762910481]	 Polled_times = 10, elapsed_microseconds = 29
+### New tick: 1762910482, window_id=21
+<before> last_seen[145832321] = ([INFO]	[ 232021762910482]	 Polled_times = [tcp_bytes], 15827214028828[udp_bytes]), elapsed_microseconds = 101
+
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910482]	 Polled_times = 2, elapsed_microseconds = 16
+[INFO]	[ 1762910482]	 Polled_times = 3, elapsed_microseconds = 16
+[INFO]	[ 1762910482]	 Polled_times = 4, elapsed_microseconds = 19
+[INFO]	[ 1762910482]	 Polled_times = 5, elapsed_microseconds = 16
+[INFO]	[ 1762910482]	 Polled_times = 6, elapsed_microseconds = 17
+[INFO]	[ 1762910482]	 Polled_times = 7, elapsed_microseconds = 16
+[INFO]	[ 1762910482]	 Polled_times = 8, elapsed_microseconds = 20
+[INFO]	[ 1762910482]	 Polled_times = 9, elapsed_microseconds = 19
+[INFO]	[ 1762910482]	 Polled_times = 10, elapsed_microseconds = 20
+### New tick: 1762910483, window_id=22
+<before> last_seen[145832321] = (23202[tcp_bytes], [INFO]	[ 58272140288281762910483]	 Polled_times = 1, elapsed_microseconds = [udp_bytes])270
+
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910483]	 Polled_times = 2, elapsed_microseconds = 20
+[INFO]	[ 1762910483]	 Polled_times = 3, elapsed_microseconds = 21
+[INFO]	[ 1762910483]	 Polled_times = 4, elapsed_microseconds = 31
+[INFO]	[ 1762910483]	 Polled_times = 5, elapsed_microseconds = 22
+[INFO]	[ 1762910483]	 Polled_times = 6, elapsed_microseconds = 20
+[INFO]	[ 1762910483]	 Polled_times = 7, elapsed_microseconds = 20
+[INFO]	[ 1762910483]	 Polled_times = 8, elapsed_microseconds = 20
+[INFO]	[ 1762910483]	 Polled_times = 9, elapsed_microseconds = 19
+[INFO]	[ 1762910483]	 Polled_times = 10, elapsed_microseconds = 20
+### New tick: 1762910484, window_id=23
+<before> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])[INFO]	[ 
+1762910484<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+]	 Polled_times = 1, elapsed_microseconds = 277
+[INFO]	[ 1762910484]	 Polled_times = 2, elapsed_microseconds = 20
+[INFO]	[ 1762910484]	 Polled_times = 3, elapsed_microseconds = 20
+[INFO]	[ 1762910484]	 Polled_times = 4, elapsed_microseconds = 19
+[INFO]	[ 1762910484]	 Polled_times = 5, elapsed_microseconds = 32
+[INFO]	[ 1762910484]	 Polled_times = 6, elapsed_microseconds = 32
+[INFO]	[ 1762910484]	 Polled_times = 7, elapsed_microseconds = 20
+[INFO]	[ 1762910484]	 Polled_times = 8, elapsed_microseconds = 19
+[INFO]	[ 1762910484]	 Polled_times = 9, elapsed_microseconds = 21
+[INFO]	[ 1762910484]	 Polled_times = 10, elapsed_microseconds = 19
+### New tick: 1762910485, window_id=24
+<before> last_seen[145832321] = ([INFO]	[ 23202[tcp_bytes], 58272140288281762910485]	 Polled_times = 1, elapsed_microseconds = [udp_bytes])266
+
+<after> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+[INFO]	[ 1762910485]	 Polled_times = 2, elapsed_microseconds = 20
+[INFO]	[ 1762910485]	 Polled_times = 3, elapsed_microseconds = 19
+[INFO]	[ 1762910485]	 Polled_times = 4, elapsed_microseconds = 22
+[INFO]	[ 1762910485]	 Polled_times = 5, elapsed_microseconds = 23
+[INFO]	[ 1762910485]	 Polled_times = 6, elapsed_microseconds = 24
+[INFO]	[ 1762910485]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910485]	 Polled_times = 8, elapsed_microseconds = 24
+[INFO]	[ 1762910485]	 Polled_times = 9, elapsed_microseconds = 24
+[INFO]	[ 1762910485]	 Polled_times = 10, elapsed_microseconds = 24
+### New tick: 1762910486, window_id=25
+<before> last_seen[145832321] = (23202[tcp_bytes], 5827214028828[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5828385437168[udp_bytes])
+{"1762910485":{"145832321":{"tcp_bytes":[611,0,0,0,0,0,0,0,0],"tcp_packets":[8,0,0,0,0,0,0,0,0],"udp_bytes":[456028040,102171672,101680164,102655800,102192336,102224808,102217428,102238092,102223332],"udp_packets":[308966,69222,68889,69550,69236,69258,69253,69267,69257]}}}
+[INFO]	[ 1762910486]	 Polled_times = 1, elapsed_microseconds = 323
+[INFO]	[ 1762910486]	 Polled_times = 2, elapsed_microseconds = 37
+[INFO]	[ 1762910486]	 Polled_times = 3, elapsed_microseconds = 24
+[INFO]	[ 1762910486]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910486]	 Polled_times = 5, elapsed_microseconds = 25
+[INFO]	[ 1762910486]	 Polled_times = 6, elapsed_microseconds = 25
+[INFO]	[ 1762910486]	 Polled_times = 7, elapsed_microseconds = 27
+[INFO]	[ 1762910486]	 Polled_times = 8, elapsed_microseconds = 26
+[INFO]	[ 1762910486]	 Polled_times = 9, elapsed_microseconds = 25
+[INFO]	[ 1762910486]	 Polled_times = 10, elapsed_microseconds = 25
+### New tick: 1762910487, window_id=26
+<before> last_seen[145832321] = (23813[tcp_bytes], 5828385437168[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5829407843180[udp_bytes])
+{"1762910486":{"145832321":{"udp_bytes":[306941580,102205620,102210048,102187908,102195288,102229236,102199716,102236616,102195288],"udp_packets":[207955,69245,69248,69233,69238,69261,69241,69266,69238]}}}
+[INFO]	[ 1762910487]	 Polled_times = 1, elapsed_microseconds = 277
+[INFO]	[ 1762910487]	 Polled_times = 2, elapsed_microseconds = 25
+[INFO]	[ 1762910487]	 Polled_times = 3, elapsed_microseconds = 24
+[INFO]	[ 1762910487]	 Polled_times = 4, elapsed_microseconds = 24
+[INFO]	[ 1762910487]	 Polled_times = 5, elapsed_microseconds = 26
+[INFO]	[ 1762910487]	 Polled_times = 6, elapsed_microseconds = 26
+[INFO]	[ 1762910487]	 Polled_times = 7, elapsed_microseconds = 24
+[INFO]	[ 1762910487]	 Polled_times = 8, elapsed_microseconds = 28
+[INFO]	[ 1762910487]	 Polled_times = 9, elapsed_microseconds = 28
+[INFO]	[ 1762910487]	 Polled_times = 10, elapsed_microseconds = 26
+### New tick: 1762910488, window_id=27
+<before> last_seen[145832321] = (23813[tcp_bytes], 5829407843180[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5830430033696[udp_bytes])
+{"1762910487":{"145832321":{"udp_bytes":[306796932,102198240,102189384,102207096,102193812,102193812,102204144,102207096,102058020],"udp_packets":[207857,69240,69234,69246,69237,69237,69244,69246,69145]}}}
+[INFO]	[ 1762910488]	 Polled_times = 1, elapsed_microseconds = 131
+[INFO]	[ 1762910488]	 Polled_times = 2, elapsed_microseconds = 26
+[INFO]	[ 1762910488]	 Polled_times = 3, elapsed_microseconds = 24
+[INFO]	[ 1762910488]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910488]	 Polled_times = 5, elapsed_microseconds = 20
+[INFO]	[ 1762910488]	 Polled_times = 6, elapsed_microseconds = 23
+[INFO]	[ 1762910488]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910488]	 Polled_times = 8, elapsed_microseconds = 26
+[INFO]	[ 1762910488]	 Polled_times = 9, elapsed_microseconds = 25
+[INFO]	[ 1762910488]	 Polled_times = 10, elapsed_microseconds = 26
+### New tick: 1762910489, window_id=28
+<before> last_seen[145832321] = (23813[tcp_bytes], 5830430033696[udp_bytes])[INFO]	[ 
+<after> last_seen[145832321] = (23813[tcp_bytes], 5831450807252[udp_bytes])
+{"1762910488":{"145832321":{"udp_bytes":[306447120,102043260,102044736,102028500,102053592,102038832,102065400,102052116,102077208],"udp_packets":[207620,69135,69136,69125,69142,69132,69150,69141,69158]}}}
+1762910489]	 Polled_times = 1, elapsed_microseconds = 134
+[INFO]	[ 1762910489]	 Polled_times = 2, elapsed_microseconds = 27
+[INFO]	[ 1762910489]	 Polled_times = 3, elapsed_microseconds = 23
+[INFO]	[ 1762910489]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910489]	 Polled_times = 5, elapsed_microseconds = 25
+[INFO]	[ 1762910489]	 Polled_times = 6, elapsed_microseconds = 25
+[INFO]	[ 1762910489]	 Polled_times = 7, elapsed_microseconds = 25
+[INFO]	[ 1762910489]	 Polled_times = 8, elapsed_microseconds = 23
+[INFO]	[ 1762910489]	 Polled_times = 9, elapsed_microseconds = 25
+[INFO]	[ 1762910489]	 Polled_times = 10, elapsed_microseconds = 23
+### New tick: 1762910490, window_id=29
+<before> last_seen[145832321] = (23813[tcp_bytes], 5831450807252[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5832471507008[udp_bytes])
+{"1762910489":{"145832321":{"udp_bytes":[306389556,102044736,102040308,101982744,102087540,102055068,102063924,102035880,102050640],"udp_packets":[207581,69136,69133,69094,69165,69143,69149,69130,69140]}}}
+[INFO]	[ 1762910490]	 Polled_times = 1, elapsed_microseconds = 139
+[INFO]	[ 1762910490]	 Polled_times = 2, elapsed_microseconds = 22
+[INFO]	[ 1762910490]	 Polled_times = 3, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 5, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 6, elapsed_microseconds = 21
+[INFO]	[ 1762910490]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 8, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 9, elapsed_microseconds = 23
+[INFO]	[ 1762910490]	 Polled_times = 10, elapsed_microseconds = 22
+### New tick: 1762910491, window_id=30
+<before> last_seen[145832321] = ([INFO]	[ 238131762910491]	 Polled_times = [tcp_bytes], 1, elapsed_microseconds = 127
+5832471507008[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5833492174292[udp_bytes])
+{"1762910490":{"145832321":{"udp_bytes":[306392508,102040308,102058020,102024072,102032928,102013740,102046212,102059496,102044736],"udp_packets":[207583,69133,69145,69122,69128,69115,69137,69146,69136]}}}
+[INFO]	[ 1762910491]	 Polled_times = 2, elapsed_microseconds = 23
+[INFO]	[ 1762910491]	 Polled_times = 3, elapsed_microseconds = 23
+[INFO]	[ 1762910491]	 Polled_times = 4, elapsed_microseconds = 22
+[INFO]	[ 1762910491]	 Polled_times = 5, elapsed_microseconds = 24
+[INFO]	[ 1762910491]	 Polled_times = 6, elapsed_microseconds = 24
+[INFO]	[ 1762910491]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910491]	 Polled_times = 8, elapsed_microseconds = 23
+[INFO]	[ 1762910491]	 Polled_times = 9, elapsed_microseconds = 24
+[INFO]	[ 1762910491]	 Polled_times = 10, elapsed_microseconds = 23
+### New tick: 1762910492, window_id=31
+<before> last_seen[145832321] = (23813[tcp_bytes], 5833492174292[udp_bytes])
+[INFO]	[ <after> last_seen[145832321] = (23813[tcp_bytes], 5834512631984[udp_bytes])
+{"1762910491":{"145832321":{"udp_bytes":[306125352,102053592,102035880,102028500,102059496,102047688,102058020,102049164,102031452],"udp_packets":[207402,69142,69130,69125,69146,69138,69145,69139,69127]}}}
+1762910492]	 Polled_times = 1, elapsed_microseconds = 129
+[INFO]	[ 1762910492]	 Polled_times = 2, elapsed_microseconds = 22
+[INFO]	[ 1762910492]	 Polled_times = 3, elapsed_microseconds = 23
+[INFO]	[ 1762910492]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910492]	 Polled_times = 5, elapsed_microseconds = 23
+[INFO]	[ 1762910492]	 Polled_times = 6, elapsed_microseconds = 22
+[INFO]	[ 1762910492]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910492]	 Polled_times = 8, elapsed_microseconds = 24
+[INFO]	[ 1762910492]	 Polled_times = 9, elapsed_microseconds = 24
+[INFO]	[ 1762910492]	 Polled_times = 10, elapsed_microseconds = 24
+### New tick: 1762910493, window_id=32
+<before> last_seen[145832321] = ([INFO]	[ 1762910493]	 Polled_times = 238131, elapsed_microseconds = 129
+[tcp_bytes], 5834512631984[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5835533331740[udp_bytes])
+{"1762910492":{"145832321":{"udp_bytes":[306368892,102043260,102056544,102044736,102032928,102066876,102037356,102049164,102060972],"udp_packets":[207567,69135,69144,69136,69128,69151,69131,69139,69147]}}}
+[INFO]	[ 1762910493]	 Polled_times = 2, elapsed_microseconds = 110
+[INFO]	[ 1762910493]	 Polled_times = 3, elapsed_microseconds = 24
+[INFO]	[ 1762910493]	 Polled_times = 4, elapsed_microseconds = 26
+[INFO]	[ 1762910493]	 Polled_times = 5, elapsed_microseconds = 26
+[INFO]	[ 1762910493]	 Polled_times = 6, elapsed_microseconds = 24
+[INFO]	[ 1762910493]	 Polled_times = 7, elapsed_microseconds = 22
+[INFO]	[ 1762910493]	 Polled_times = 8, elapsed_microseconds = 22
+[INFO]	[ 1762910493]	 Polled_times = 9, elapsed_microseconds = 21
+[INFO]	[ 1762910493]	 Polled_times = 10, elapsed_microseconds = 22
+### New tick: 1762910494, window_id=33
+<before> last_seen[145832321] = (23813[tcp_bytes], 5835533331740[INFO]	[ [udp_bytes])1762910494]	 Polled_times = 
+1, elapsed_microseconds = 127<after> last_seen[145832321] = (23813[tcp_bytes], 5836553891276
+[udp_bytes])
+{"1762910493":{"145832321":{"udp_bytes":[306302472,101991600,102038832,102025548,102028500,102074256,102062448,102035880,102041784],"udp_packets":[207522,69100,69132,69123,69125,69156,69148,69130,69134]}}}
+[INFO]	[ 1762910494]	 Polled_times = 2, elapsed_microseconds = 23
+[INFO]	[ 1762910494]	 Polled_times = 3, elapsed_microseconds = 22
+[INFO]	[ 1762910494]	 Polled_times = 4, elapsed_microseconds = 23
+[INFO]	[ 1762910494]	 Polled_times = 5, elapsed_microseconds = 24
+[INFO]	[ 1762910494]	 Polled_times = 6, elapsed_microseconds = 22
+[INFO]	[ 1762910494]	 Polled_times = 7, elapsed_microseconds = 26
+[INFO]	[ 1762910494]	 Polled_times = 8, elapsed_microseconds = 25
+[INFO]	[ 1762910494]	 Polled_times = 9, elapsed_microseconds = 23
+[INFO]	[ 1762910494]	 Polled_times = 10, elapsed_microseconds = 50
+### New tick: 1762910495, window_id=34
+<before> last_seen[145832321] = (23813[tcp_bytes], 5836553891276[udp_bytes])
+<after> last_seen[145832321] = (23813[tcp_bytes], 5837408406716[udp_bytes])
+[INFO]	[ 1762910495]	 Polled_times = 1, elapsed_microseconds = 126
+{"1762910494":{"145832321":{"udp_bytes":[306163728,102035880,102028500,102035880,102055068,101994552,38201832,0,0],"udp_packets":[207428,69130,69125,69130,69143,69102,25882,0,0]}}}
+[INFO]	[ 1762910495]	 Polled_times = 2, elapsed_microseconds = 67
+[INFO]	[ 1762910495]	 Polled_times = 3, elapsed_microseconds = 72
+[INFO]	[ 1762910495]	 Polled_times = 4, elapsed_microseconds = 24
+[INFO]	[ 1762910495]	 Polled_times = 5, elapsed_microseconds = 61
+[INFO]	[ 1762910495]	 Polled_times = 6, elapsed_microseconds = 30
+[INFO]	[ 1762910495]	 Polled_times = 7, elapsed_microseconds = 33
+[INFO]	[ 1762910495]	 Polled_times = 8, elapsed_microseconds = 31
+[INFO]	[ 1762910495]	 Polled_times = 9, elapsed_microseconds = 30
+[INFO]	[ 1762910495]	 Polled_times = 10, elapsed_microseconds = 29
+### New tick: 1762910496, window_id=35
+<before> last_seen[145832321] = (23813[tcp_bytes], 5837408406716[udp_bytes])
+[INFO]	[ <after> last_seen[1762910496145832321] = (25021]	 Polled_times = [tcp_bytes], 5837408406716[udp_bytes])1
+, elapsed_microseconds = 168
+{"1762910495":{"145832321":{"tcp_bytes":[1208,0,0,0,0,0,0,0,0],"tcp_packets":[8,0,0,0,0,0,0,0,0]}}}
+[INFO]	[ 1762910496]	 Polled_times = 2, elapsed_microseconds = 39
+[INFO]	[ 1762910496]	 Polled_times = 3, elapsed_microseconds = 34
+[INFO]	[ 1762910496]	 Polled_times = 4, elapsed_microseconds = 39
+[INFO]	[ 1762910496]	 Polled_times = 5, elapsed_microseconds = 32
+[INFO]	[ 1762910496]	 Polled_times = 6, elapsed_microseconds = 23
+[INFO]	[ 1762910496]	 Polled_times = 7, elapsed_microseconds = 23
+[INFO]	[ 1762910496]	 Polled_times = 8, elapsed_microseconds = 25
+[INFO]	[ 1762910496]	 Polled_times = 9, elapsed_microseconds = 23
+[INFO]	[ 1762910496]	 Polled_times = 10, elapsed_microseconds = 23
+### New tick: 1762910497, window_id=36
+<before> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+<after> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+[INFO]	[ 1762910497]	 Polled_times = 1, elapsed_microseconds = 145
+[INFO]	[ 1762910497]	 Polled_times = 2, elapsed_microseconds = 24
+[INFO]	[ 1762910497]	 Polled_times = 3, elapsed_microseconds = 23
+[INFO]	[ 1762910497]	 Polled_times = 4, elapsed_microseconds = 21
+[INFO]	[ 1762910497]	 Polled_times = 5, elapsed_microseconds = 24
+[INFO]	[ 1762910497]	 Polled_times = 6, elapsed_microseconds = 21
+[INFO]	[ 1762910497]	 Polled_times = 7, elapsed_microseconds = 21
+[INFO]	[ 1762910497]	 Polled_times = 8, elapsed_microseconds = 22
+[INFO]	[ 1762910497]	 Polled_times = 9, elapsed_microseconds = 20
+[INFO]	[ 1762910497]	 Polled_times = 10, elapsed_microseconds = 22
+### New tick: 1762910498, window_id=37
+<before> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+<after> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+[INFO]	[ 1762910498]	 Polled_times = 1, elapsed_microseconds = 127
+[INFO]	[ 1762910498]	 Polled_times = 2, elapsed_microseconds = 20
+[INFO]	[ 1762910498]	 Polled_times = 3, elapsed_microseconds = 20
+[INFO]	[ 1762910498]	 Polled_times = 4, elapsed_microseconds = 20
+[INFO]	[ 1762910498]	 Polled_times = 5, elapsed_microseconds = 19
+[INFO]	[ 1762910498]	 Polled_times = 6, elapsed_microseconds = 20
+[INFO]	[ 1762910498]	 Polled_times = 7, elapsed_microseconds = 20
+[INFO]	[ 1762910498]	 Polled_times = 8, elapsed_microseconds = 39
+[INFO]	[ 1762910498]	 Polled_times = 9, elapsed_microseconds = 16
+[INFO]	[ 1762910498]	 Polled_times = 10, elapsed_microseconds = 79
+### New tick: 1762910499, window_id=38
+<before> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+<after> last_seen[145832321] = (25021[tcp_bytes], 5837408406716[udp_bytes])
+[INFO]	[ 1762910499]	 Polled_times = 1, elapsed_microseconds = 124
