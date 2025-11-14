@@ -491,7 +491,7 @@ void print_in_json(
 
         /// TODO: turn the debug information on for easier tracing
         /// TODO: Use last_seen to caculate the coarse-grain window sum
-        if (!verbose) {
+        if (verbose) {
             std::cout << "[DEBUG] <after> last_seen[" << ip << "] = (" << last_seen[ip].tcp_bytes <<\
             "[tcp_bytes], " << last_seen[ip].udp_bytes << "[udp_bytes])" << std::endl;
         }
