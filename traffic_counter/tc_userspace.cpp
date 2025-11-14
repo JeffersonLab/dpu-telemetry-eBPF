@@ -138,7 +138,6 @@ void print_latest_metric_bin(const time_t print_second) {
         print_vec("udp_bytes", bins.udp_bytes);
         print_vec("udp_packets", bins.udp_packets);
     }
-
 }
 
 
@@ -159,27 +158,73 @@ void print_latest_metric_bin(const time_t print_second) {
  * @return A vector of deltas representing changes between adjacent snapshot values.
  */
 std::vector<__u64> get_diff_vector(
-    const std::vector<__u64>& snapshot, const __u64& last_seen, size_t& valid_len) {
+    const std::vector<__u64> snapshot, __u64& last_seen, size_t& valid_len) {
     std::vector<__u64> diff;
     valid_len = 0;
     if (snapshot.empty()) return diff;
 
-    __u64 pre = last_seen;
+    /* Helper print
+    std::cout << "\t snapshot:";
+    for (size_t i = 0; i < snapshot.size(); i++) {
+        std::cout << snapshot[i] << ",";
+    }
+    std::cout << "\n\t last_seen=" << last_seen << std::endl;
+    */
+
     // snapshot is an array looks like [199, 199, ..., 200, 0, ...]
     // It's non-decreasing until the zeros.
-    for (size_t i = 0; i < snapshot.size(); ++i) {
-        if (snapshot[i] == 0)  // skip tailing zeros (because of extra memory allocation)
+
+    std::unique_lock lock(data_mutex);
+
+    // First element
+    if (snapshot[0] < last_seen) {
+        /// TODO: @test this senario can happen. When an IP was ejected from the
+        // map before and appears again, pre may be larger than snapshot[i].
+        /// TODO: @bug actually we do not know whether an IP has been ejected from
+        // the kernel map or not. last_seen has no information on that.
+        /// TODO: @bug Redesign, how to keep the kernel map and last_seen consistent.
+        std::cout << "[WARNING]\tNew entry?! curr=" << snapshot[0] << ", pre="\
+            << last_seen << ", i=0" << std::endl;
+        last_seen = snapshot[0];
+    }
+    diff.push_back(snapshot[0] - last_seen);
+    __u64 pre = snapshot[0];
+    valid_len = 1;
+    for (size_t i = 1; i < snapshot.size(); ++i) {
+        // Skip tailing zeros (because of extra memory allocation)
+        if (snapshot[i - 1] > 0 && snapshot[i] == 0)
             break;
-        // TODO(@xmei): --verbose mode
+        /// TODO: --verbose mode
         if (snapshot[i] < pre) {
-            /// TODO: @test this senario can happen. When an IP was ejected from the
-            // map before and appears again, pre may be larger than snapshot[i].
-            std::cout << "[WARNING]\tNew entry?! curr=" << snapshot[i] << ", pre=" << pre << i << std::endl;
-            pre = 0;
+            /// NOTE: We do have warnings when i is large!!!
+            /// It happens when reusing the ring buffer slot. Each round the real
+            //   bin numbers are different. If current round got less bins, then it will access
+            //   the data from previous run of the same buffer slot.
+            // std::cout << "[WARNING]\t [curr < pre?!] curr=" << snapshot[i] << ", pre="\
+            // << pre << ", i=" << i << ", last_seen=" << last_seen << std::endl;
+            last_seen = pre;
+            break;
         }
         diff.push_back(snapshot[i] - pre);
         pre = snapshot[i];
         valid_len += 1;
+    }
+    last_seen = snapshot[valid_len - 1];
+
+    /* Helper print
+    std::cout << "\t diff:";
+    for (size_t i = 0; i < diff.size(); i++) {
+        std::cout << diff[i] << ",";
+    }
+    std::cout << "\n\t valid_len=" << valid_len << std::endl;
+    std::cout << "\t last_seen=" << last_seen << std::endl;
+    */
+
+    bool all_zero = std::all_of(diff.begin(), diff.end(),
+                            [](auto v){ return v == 0; });
+    if (all_zero) {
+        valid_len = 0;
+        return {};
     }
 
     return diff;
@@ -232,16 +277,11 @@ inline void update_metric_field(
     if (snapshot.empty())
         return;  // no data in this window
 
-    // Zero-suspension: skip update if snapshot hasn't changed
-    if (snapshot.front() == last_seen_val)
-        return;
-
     size_t valid_len = 0;
     auto diff = get_diff_vector(snapshot, last_seen_val, valid_len);
 
     if (valid_len > 0) {
         j_ip[field_name] = diff;
-        last_seen_val = snapshot[valid_len - 1];
     }
 }
 
@@ -349,11 +389,12 @@ void append_snapshot_to_metric_bins(
 
     auto& curr_window = gBuffer[window_id];
 
-    for (const auto& [ip, val] : snapshot_tcp) {   
+    for (const auto& [ip, val] : snapshot_tcp) {
         auto& bins = curr_window[ip];
 
         // Initialize vectors if first time this IP appears
         if (bins.tcp_bytes.empty()) {
+            /// NOTE: for large polling frequency, used bin number is smaller than num_bins
             bins = BinsPerIP(num_bins);
         }
 
@@ -423,6 +464,18 @@ void print_in_json(
     // Note that not all time windows have exactly poll_hz values
     // It may look like [9766, ..., 9766, 0, 0, 0]
 
+    // First-time initialization to avoid first data-point spike.
+    if (first_report) {
+        for (const auto& [ip, bins] : gBuffer[window_id]) {
+            last_seen[ip].tcp_bytes = bins.tcp_bytes.front();
+            last_seen[ip].tcp_packets = bins.tcp_packets.front();
+            last_seen[ip].udp_bytes = bins.udp_bytes.front();
+            last_seen[ip].udp_packets = bins.udp_packets.front();
+        }
+        first_report = false;
+    }
+
+    // std::unique_lock lock(data_mutex);
     for (const auto& [ip, bins] : gBuffer[window_id]) {
         json j_ip;
 
@@ -431,25 +484,18 @@ void print_in_json(
             "[tcp_bytes], " << last_seen[ip].udp_bytes << "[udp_bytes])" << std::endl;
         }
 
-        // First-time initialization to avoid first data-point spike.
-        if (first_report) {
-            last_seen[ip].tcp_bytes = bins.tcp_bytes.front();
-            last_seen[ip].tcp_packets = bins.tcp_packets.front();
-            last_seen[ip].udp_bytes = bins.udp_bytes.front();
-            last_seen[ip].udp_packets = bins.udp_packets.front();
-            first_report = false;
-        }
-
         update_metric_field(j_ip, "tcp_bytes",   bins.tcp_bytes,   last_seen[ip].tcp_bytes);
         update_metric_field(j_ip, "tcp_packets", bins.tcp_packets, last_seen[ip].tcp_packets);
         update_metric_field(j_ip, "udp_bytes",   bins.udp_bytes,   last_seen[ip].udp_bytes);
         update_metric_field(j_ip, "udp_packets", bins.udp_packets, last_seen[ip].udp_packets);
 
-        if (verbose) {
-            std::cout << "<after> last_seen[" << ip << "] = (" << last_seen[ip].tcp_bytes <<\
+        /// TODO: turn the debug information on for easier tracing
+        /// TODO: Use last_seen to caculate the coarse-grain window sum
+        if (!verbose) {
+            std::cout << "[DEBUG] <after> last_seen[" << ip << "] = (" << last_seen[ip].tcp_bytes <<\
             "[tcp_bytes], " << last_seen[ip].udp_bytes << "[udp_bytes])" << std::endl;
         }
-        
+
         if (j_ip.empty())
             continue;
 
@@ -457,9 +503,16 @@ void print_in_json(
         j_ts[std::to_string(ip)] = j_ip;
     }
 
+    // Reset this slot in the ring buffer to zeros
+    for (auto& [ip, bins] : gBuffer[window_id]) {
+        std::fill(bins.tcp_bytes.begin(),     bins.tcp_bytes.end(), 0);
+        std::fill(bins.tcp_packets.begin(),   bins.tcp_packets.end(), 0);
+        std::fill(bins.udp_bytes.begin(),     bins.udp_bytes.end(), 0);
+        std::fill(bins.udp_packets.begin(),   bins.udp_packets.end(), 0);
+    }
     if (j_ts.empty())
         return;
-    
+
     json record;
     record[std::to_string(print_second)] = j_ts;
 
@@ -477,7 +530,6 @@ void print_usage(const char* prog) {
 
 void parse_args(int argc, char** argv,
     int& poll_hz, std::string& map_path, bool& verbose) {
-    
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if ((arg == "-p" || arg == "--poll-hz") && i + 1 < argc) {
@@ -519,6 +571,10 @@ int main(int argc, char** argv) {
     /**
      * Continuously polls the eBPF map and aggregates the snapshots into time-series metric bins.
     */
+    if (1000000 % poll_hz != 0) {
+        std::cout << "Error, polling frequency not supported!";
+        exit(-1);
+    }
     auto interval_in_microseconds = std::chrono::microseconds(1000000 / poll_hz);
 
     time_t last_ts = now_sec();
@@ -545,7 +601,7 @@ int main(int argc, char** argv) {
 
         window_id = curr_second % SLOTS_IN_GLOBAL_RING_BUFFER;
         if (get_snapshot_bpf_map(map_fd, snapshot_tcp, snapshot_udp) == 0) {
-            append_snapshot_to_metric_bins(window_id, polling_counter, poll_hz, 
+            append_snapshot_to_metric_bins(window_id, polling_counter, poll_hz,
                 snapshot_tcp, snapshot_udp);
         }
 
