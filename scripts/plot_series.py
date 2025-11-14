@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 if len(sys.argv) != 5:
-    print("Usage: python plot_udp_second_line.py <file_200Hz> <file_2000Hz> <file_2000Hz> <file_4000Hz>")
+    print("Usage: python plot_udp_second_line.py"
+        " <file_200Hz> <file_2000Hz> <file_2000Hz> <file_4000Hz>")
     sys.exit(1)
+
 
 def extract_udp_by_line(file_path, line_id):
     with open(file_path, "r") as f:

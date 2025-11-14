@@ -165,14 +165,17 @@ std::vector<__u64> get_diff_vector(
     if (snapshot.empty()) return diff;
 
     __u64 pre = last_seen;
-    // snapshot is an array looks like [199, 199, ..., 199, 0, ...]
+    // snapshot is an array looks like [199, 199, ..., 200, 0, ...]
     // It's non-decreasing until the zeros.
-    for (size_t i = 1; i < snapshot.size(); ++i) {
-        if (snapshot[i] == 0)
+    for (size_t i = 0; i < snapshot.size(); ++i) {
+        if (snapshot[i] == 0)  // skip tailing zeros (because of extra memory allocation)
             break;
-        // TODO: --verbose mode
+        // TODO(@xmei): --verbose mode
         if (snapshot[i] < pre) {
-            std::cout << "[WARNING]\tsnapshot[i] < snapshot[i - 1]" << snapshot[i] << pre << i << std::endl;
+            /// TODO: @test this senario can happen. When an IP was ejected from the
+            // map before and appears again, pre may be larger than snapshot[i].
+            std::cout << "[WARNING]\tNew entry?! curr=" << snapshot[i] << ", pre=" << pre << i << std::endl;
+            pre = 0;
         }
         diff.push_back(snapshot[i] - pre);
         pre = snapshot[i];
@@ -226,7 +229,7 @@ inline void update_metric_field(
     const std::vector<__u64>& snapshot,
     __u64& last_seen_val)
 {
-    if (snapshot.empty() || snapshot.front() == 0)
+    if (snapshot.empty())
         return;  // no data in this window
 
     // Zero-suspension: skip update if snapshot hasn't changed
