@@ -15,7 +15,8 @@
 #define TC_ACT_OK 0
 #define ETH_P_IP 0x0800 /* Internet Protocol packet */
 
-/* Below after "///" are not comments. They are eBPF definiations. */
+/// NOTE: Below after "///@" are not comments. They are eBPF definitions.
+/// DONOT TOUCH!!
 
 /// @tchook {"ifindex":1, "attach_point":"BPF_TC_INGRESS"}
 /// @tcopts {"handle":1, "priority":1}

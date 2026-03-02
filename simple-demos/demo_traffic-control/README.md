@@ -19,7 +19,7 @@ The sample code is taken from the tutorial at https://eunomia.dev/en/tutorials/2
 3. Run the eBPF object.
    - Add the compiled object to the network device's `qdis` and `filter` rules.
    - Read the tracing logs.
-4. Cleanup the TC rules. Refer to [traffic_counter](../traffic_counter/README.md) for detailed TC hook attach and detach process.
+4. Cleanup the TC rules. Refer to [traffic_counter](../../traffic_counter/backup_v1-userspace-poll/README.md) for detailed TC hook attach and detach process.
 
 
 
