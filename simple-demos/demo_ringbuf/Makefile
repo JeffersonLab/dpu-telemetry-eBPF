@@ -22,8 +22,8 @@ USER_BIN = ringbuf_tick.o
 CFLAGS += -O2 -g -Wall -Wextra
 BPF_CFLAGS += -O2 -g -target bpf -D__TARGET_ARCH_x86
 
-# all: $(BPF_OBJ) $(USER_BIN)
-all: $(BPF_OBJ)
+all: $(BPF_OBJ) $(USER_BIN)
+# all: $(BPF_OBJ)
 
 # Corresponding command: `sudo clang -O2 -g -target bpf $INC -c "$cfile" -o "$obj"`
 $(BPF_OBJ): $(BPF_SRCFILE)
