@@ -318,57 +318,93 @@ redisContext* connect_redis() {
     return context;
 }
 
-bool write_edge_to_redis(
-    redisContext* context, const json& edge_record, const bool verbose) {
-    std::string key = "packet:" + edge_record["dest_ip"].get<std::string>() + ":"
-                    + edge_record["source_ip"].get<std::string>() + ":"
-                    + std::to_string(edge_record["timestamp"].get<time_t>());
-    std::string udp_packets = edge_record["udp_packets"].dump();
-    std::string udp_bytes = edge_record["udp_bytes"].dump();
-    std::string tcp_packets = edge_record["tcp_packets"].dump();
-    std::string tcp_bytes = edge_record["tcp_bytes"].dump();
+void write_edges_to_redis(
+    redisContext* context, const json& edge_records, const bool verbose) {
+    struct WriteStatus {
+        std::string key;
+        bool ok = true;
+    };
+    struct PendingReply {
+        size_t edge_index;
+        const char* command;
+    };
+    std::vector<WriteStatus> writes;
+    std::vector<PendingReply> pending_replies;
+    writes.reserve(edge_records.size());
+    pending_replies.reserve(edge_records.size() * 2);
 
-    redisReply* reply = static_cast<redisReply*>(redisCommand(
-        context,
-        "HSET %s timestamp %lld source_ip %s dest_ip %s samples_per_second %d "
-        "total_packets %llu total_bytes %llu udp_packets %b udp_bytes %b "
-        "tcp_packets %b tcp_bytes %b",
-        key.c_str(),
-        static_cast<long long>(edge_record["timestamp"].get<time_t>()),
-        edge_record["source_ip"].get_ref<const std::string&>().c_str(),
-        edge_record["dest_ip"].get_ref<const std::string&>().c_str(),
-        edge_record["samples_per_second"].get<int>(),
-        edge_record["total_packets"].get<unsigned long long>(),
-        edge_record["total_bytes"].get<unsigned long long>(),
-        udp_packets.data(), udp_packets.size(),
-        udp_bytes.data(), udp_bytes.size(),
-        tcp_packets.data(), tcp_packets.size(),
-        tcp_bytes.data(), tcp_bytes.size()));
+    for (const auto& item : edge_records.items()) {
+        const json& edge_record = item.value();
+        std::string key = "packet:" + edge_record["dest_ip"].get<std::string>() + ":"
+                        + edge_record["source_ip"].get<std::string>() + ":"
+                        + std::to_string(edge_record["timestamp"].get<time_t>());
+        std::string udp_packets = edge_record["udp_packets"].dump();
+        std::string udp_bytes = edge_record["udp_bytes"].dump();
+        std::string tcp_packets = edge_record["tcp_packets"].dump();
+        std::string tcp_bytes = edge_record["tcp_bytes"].dump();
+        const size_t edge_index = writes.size();
+        writes.push_back({key});
 
-    if (reply == nullptr) {
-        std::cerr << "Redis HSET failed for " << key << ": " << context->errstr << std::endl;
-        return false;
+        if (redisAppendCommand(
+                context,
+                "HSET %s timestamp %lld source_ip %s dest_ip %s samples_per_second %d "
+                "total_packets %llu total_bytes %llu udp_packets %b udp_bytes %b "
+                "tcp_packets %b tcp_bytes %b",
+                key.c_str(),
+                static_cast<long long>(edge_record["timestamp"].get<time_t>()),
+                edge_record["source_ip"].get_ref<const std::string&>().c_str(),
+                edge_record["dest_ip"].get_ref<const std::string&>().c_str(),
+                edge_record["samples_per_second"].get<int>(),
+                edge_record["total_packets"].get<unsigned long long>(),
+                edge_record["total_bytes"].get<unsigned long long>(),
+                udp_packets.data(), udp_packets.size(),
+                udp_bytes.data(), udp_bytes.size(),
+                tcp_packets.data(), tcp_packets.size(),
+                tcp_bytes.data(), tcp_bytes.size()) != REDIS_OK) {
+            std::cerr << "Redis HSET queue failed for " << key << ": "
+                      << context->errstr << std::endl;
+            writes[edge_index].ok = false;
+            continue;
+        }
+        pending_replies.push_back({edge_index, "HSET"});
+
+        if (redis_ttl > 0) {
+            if (redisAppendCommand(context, "EXPIRE %s %d", key.c_str(), redis_ttl)
+                    != REDIS_OK) {
+                std::cerr << "Redis EXPIRE queue failed for " << key << ": "
+                          << context->errstr << std::endl;
+                writes[edge_index].ok = false;
+                continue;
+            }
+            pending_replies.push_back({edge_index, "EXPIRE"});
+        }
     }
-    bool ok = reply->type != REDIS_REPLY_ERROR;
-    if (!ok)
-        std::cerr << "Redis HSET failed for " << key << ": " << reply->str << std::endl;
-    freeReplyObject(reply);
 
-    if (!ok || redis_ttl <= 0)
-        return ok;
-
-    reply = static_cast<redisReply*>(redisCommand(context, "EXPIRE %s %d", key.c_str(), redis_ttl));
-    if (reply == nullptr) {
-        std::cerr << "Redis EXPIRE failed for " << key << ": " << context->errstr << std::endl;
-        return false;
+    for (const auto& pending : pending_replies) {
+        WriteStatus& write = writes[pending.edge_index];
+        void* raw_reply = nullptr;
+        if (redisGetReply(context, &raw_reply) != REDIS_OK || raw_reply == nullptr) {
+            std::cerr << "Redis " << pending.command << " failed for " << write.key << ": "
+                      << context->errstr << std::endl;
+            for (auto& queued_write : writes)
+                queued_write.ok = false;
+            break;
+        }
+        redisReply* reply = static_cast<redisReply*>(raw_reply);
+        if (reply->type == REDIS_REPLY_ERROR) {
+            std::cerr << "Redis " << pending.command << " failed for " << write.key << ": "
+                      << reply->str << std::endl;
+            write.ok = false;
+        }
+        freeReplyObject(reply);
     }
-    ok = reply->type != REDIS_REPLY_ERROR;
-    if (!ok)
-        std::cerr << "Redis EXPIRE failed for " << key << ": " << reply->str << std::endl;
-    freeReplyObject(reply);
-    if (ok && verbose)
-        std::cout << "Published Redis key: " << key << '\n';
-    return ok;
+
+    if (verbose) {
+        for (const auto& write : writes) {
+            if (write.ok)
+                std::cout << "Published Redis key: " << write.key << '\n';
+        }
+    }
 }
 
 /**
@@ -620,8 +656,7 @@ void print_in_json(
     if (j_ts.empty())
         return;
 
-    for (const auto& item : j_ts.items())
-        write_edge_to_redis(redis_context, item.value(), verbose);
+    write_edges_to_redis(redis_context, j_ts, verbose);
 }
 
 
