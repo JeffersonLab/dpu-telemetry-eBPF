@@ -365,6 +365,8 @@ bool write_edge_to_redis(redisContext* context, const json& edge_record) {
     if (!ok)
         std::cerr << "Redis EXPIRE failed for " << key << ": " << reply->str << std::endl;
     freeReplyObject(reply);
+    if (ok)
+        std::cout << "Published Redis key: " << key << std::endl;
     return ok;
 }
 
@@ -541,7 +543,7 @@ void append_snapshot_to_metric_bins(
  * - The function accesses the global `gBuffer` to read per-edge bins.
  * - Only entries with nonzero changes since the previous print are included.
  * - Designed to be invoked asynchronously (e.g., via `std::thread(print_in_json, ...)`).
- * - The output is currently written to `stdout` in pretty-printed JSON form.
+ * - Successfully published Redis keys are written to `stdout`.
  */
 void print_in_json(
     const time_t print_second,
@@ -616,12 +618,6 @@ void print_in_json(
     }
     if (j_ts.empty())
         return;
-
-    json record;
-    record[std::to_string(print_second)] = j_ts;
-
-    /// TODO: not dump to screen
-    std::cout << record.dump() << std::endl;
 
     for (const auto& item : j_ts.items())
         write_edge_to_redis(redis_context, item.value());

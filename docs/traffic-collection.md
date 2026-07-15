@@ -39,6 +39,8 @@ cumulative counters to a userspace collector through pinned BPF maps.
   the simulator contract except for simulator-only `node_id`.
 - Redis defaults to `localhost:6379` with a 3600-second TTL and can be changed
   with `--redis-host`, `--redis-port`, and `--redis-ttl`.
+- Standard output reports only successfully published Redis keys; full edge
+  records are not dumped to the terminal.
 - The userspace collector must be rebuilt whenever the shared map key layout
   changes.
 
