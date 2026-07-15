@@ -53,12 +53,13 @@ int tc_egress(struct __sk_buff *skb) {
     // The CPU is small endian.
     // To make it human readable, transfer to big endian (ntoh) in user space.
     struct traffic_key_t key = {
-        .ip = ip->saddr,
+        .source_ip = ip->saddr,
+        .destination_ip = ip->daddr,
         .proto = ip->protocol,
     };
 
     /// NOTE: Ignore 0.0.0.0 (0) and 255.255.255.255 (4294967295) for now.
-    if (key.ip == 0)
+    if (key.source_ip == 0)
         return TC_ACT_OK;
 
     // Only count the UDP and TCP traffix now.

@@ -13,7 +13,8 @@
 #include <linux/types.h>
 
 struct traffic_key_t {
-    __u32 ip;
+    __u32 source_ip;
+    __u32 destination_ip;
     // Use the standard protocol numbers denoted as IPPROTO_TCP/IPPROTO_XXX in <linux/in.h>.
     // Number reference: https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
     __u8 proto;
