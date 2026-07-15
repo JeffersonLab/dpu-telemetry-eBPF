@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
+#include <algorithm>
+#include <array>
 #include <map>
 #include <vector>
 #include <chrono>
@@ -176,14 +178,17 @@ void print_latest_metric_bin(const time_t print_second) {
  * @param snapshot   Vector of cumulative values (e.g., bytes or packets).
  * @param last_seen  Reference to the last value seen before this snapshot.
  *                   Used to compute the first delta.
- *
- * @return A vector of deltas representing changes between adjacent snapshot values.
+ * @return One delta per allocated polling bin and whether any delta is non-zero.
  */
-std::vector<__u64> get_diff_vector(
-    const std::vector<__u64> snapshot, __u64& last_seen, size_t& valid_len) {
-    std::vector<__u64> diff;
-    valid_len = 0;
-    if (snapshot.empty()) return diff;
+struct MetricDiff {
+    std::vector<__u64> values;
+    bool changed = false;
+};
+
+MetricDiff get_diff_vector(
+    const std::vector<__u64>& snapshot, __u64& last_seen) {
+    MetricDiff result{std::vector<__u64>(snapshot.size(), 0)};
+    if (snapshot.empty()) return result;
 
     /* Helper print
     std::cout << "\t snapshot:";
@@ -192,9 +197,6 @@ std::vector<__u64> get_diff_vector(
     }
     std::cout << "\n\t last_seen=" << last_seen << std::endl;
     */
-
-    // snapshot is an array looks like [199, 199, ..., 200, 0, ...]
-    // It's non-decreasing until the zeros.
 
     std::unique_lock lock(data_mutex);
 
@@ -209,13 +211,10 @@ std::vector<__u64> get_diff_vector(
             << last_seen << ", i=0" << std::endl;
         last_seen = snapshot[0];
     }
-    diff.push_back(snapshot[0] - last_seen);
+    result.values[0] = snapshot[0] - last_seen;
+    result.changed = result.values[0] != 0;
     __u64 pre = snapshot[0];
-    valid_len = 1;
     for (size_t i = 1; i < snapshot.size(); ++i) {
-        // Skip tailing zeros (because of extra memory allocation)
-        if (snapshot[i - 1] > 0 && snapshot[i] == 0)
-            break;
         /// TODO: --verbose mode
         if (snapshot[i] < pre) {
             /// NOTE: We do have warnings when i is large!!!
@@ -227,29 +226,21 @@ std::vector<__u64> get_diff_vector(
             last_seen = pre;
             break;
         }
-        diff.push_back(snapshot[i] - pre);
+        result.values[i] = snapshot[i] - pre;
+        result.changed |= result.values[i] != 0;
         pre = snapshot[i];
-        valid_len += 1;
     }
-    last_seen = snapshot[valid_len - 1];
+    last_seen = pre;
 
     /* Helper print
     std::cout << "\t diff:";
-    for (size_t i = 0; i < diff.size(); i++) {
-        std::cout << diff[i] << ",";
+    for (size_t i = 0; i < result.values.size(); i++) {
+        std::cout << result.values[i] << ",";
     }
-    std::cout << "\n\t valid_len=" << valid_len << std::endl;
     std::cout << "\t last_seen=" << last_seen << std::endl;
     */
 
-    bool all_zero = std::all_of(diff.begin(), diff.end(),
-                            [](auto v){ return v == 0; });
-    if (all_zero) {
-        valid_len = 0;
-        return {};
-    }
-
-    return diff;
+    return result;
 }
 
 /**
@@ -259,13 +250,12 @@ std::vector<__u64> get_diff_vector(
  * This helper function encapsulates the common logic used for both TCP/UDP
  * byte and packet metrics. It computes per-interval differences between the
  * current snapshot (`snapshot`) and the previously recorded cumulative value
- * (`last_seen_val`), stores the resulting difference vector into the JSON
- * object (`j_ip`), and updates `last_seen_val` to the latest cumulative value.
+ * (`last_seen_val`), stores the completed-sample vector in the JSON object
+ * (`j_edge`), and updates `last_seen_val` to the latest cumulative value.
  *
- * The function only updates the JSON and `last_seen_val` if at least one
- * valid (non-zero) element is found in the snapshot.
+ * @return true when the metric contains at least one non-zero delta.
  *
- * @param j_ip
+ * @param j_edge
  *        Reference to the per-edge JSON object being constructed.
  *        The function inserts a new key-value pair using `field_name`
  *        as the JSON field name.
@@ -282,29 +272,29 @@ std::vector<__u64> get_diff_vector(
  *        Reference to the last cumulative value recorded for this metric
  *        and edge. The function updates this value in-place to the last
  *        non-zero snapshot entry processed.
- *
  * @note
  * - Calls `get_diff_vector()` internally to compute per-interval deltas.
- * - Does nothing if the snapshot vector is empty or contains only zeros.
+ * - Emits a zero-filled array when the snapshot is empty or unchanged.
  * - Designed for use within higher-level aggregation functions such as
  *   `print_in_json()`.
  */
 
-inline void update_metric_field(
-    json& j_ip,
+inline bool update_metric_field(
+    json& j_edge,
     const std::string& field_name,
     const std::vector<__u64>& snapshot,
     __u64& last_seen_val)
 {
-    if (snapshot.empty())
-        return;  // no data in this window
+    auto diff = get_diff_vector(snapshot, last_seen_val);
+    j_edge[field_name] = std::move(diff.values);
+    return diff.changed;
+}
 
-    size_t valid_len = 0;
-    auto diff = get_diff_vector(snapshot, last_seen_val, valid_len);
-
-    if (valid_len > 0) {
-        j_ip[field_name] = diff;
-    }
+__u64 sum_metric(const json& values) {
+    __u64 total = 0;
+    for (const auto& value : values)
+        total += value.get<__u64>();
+    return total;
 }
 
 /**
@@ -404,6 +394,9 @@ void append_snapshot_to_metric_bins(
     const std::map<EdgeKey, traffic_val_t>& snapshot_tcp,
     const std::map<EdgeKey, traffic_val_t>& snapshot_udp) {
 
+    if (polling_id >= static_cast<uint32_t>(num_bins))
+        return;
+
     std::unique_lock lock(data_mutex);  // Protect global access
 
     auto& curr_window = gBuffer[window_id];
@@ -450,6 +443,10 @@ void append_snapshot_to_metric_bins(
  *     "<source_ip>:<dest_ip>": {
  *       "source_ip": "<source_ip>",
  *       "dest_ip": "<dest_ip>",
+ *       "timestamp": 1234567890,
+ *       "samples_per_second": 20,
+ *       "total_packets": 0,
+ *       "total_bytes": 0,
  *       "tcp_bytes": [...],
  *       "tcp_packets": [...],
  *       "udp_bytes": [...],
@@ -463,7 +460,6 @@ void append_snapshot_to_metric_bins(
  * @param print_second
  *        The timestamp (in seconds) identifying the window to be printed.
  *        This value is also used as the JSON record key.
- *
  * @param last_seen
  *        A reference to a map storing the last-seen per-edge counters from the
  *        previous print cycle. It is updated in-place with the latest counters
@@ -478,7 +474,9 @@ void append_snapshot_to_metric_bins(
  * - The output is currently written to `stdout` in pretty-printed JSON form.
  */
 void print_in_json(
-    const time_t print_second, std::map<EdgeKey, LastSeen>& last_seen, const bool verbose) {
+    const time_t print_second,
+    std::map<EdgeKey, LastSeen>& last_seen,
+    const bool verbose) {
     json j_ts;
 
     int window_id = print_second % SLOTS_IN_GLOBAL_RING_BUFFER;
@@ -506,10 +504,15 @@ void print_in_json(
             << "[udp_bytes])" << std::endl;
         }
 
-        update_metric_field(j_edge, "tcp_bytes",   bins.tcp_bytes,   last_seen[edge].tcp_bytes);
-        update_metric_field(j_edge, "tcp_packets", bins.tcp_packets, last_seen[edge].tcp_packets);
-        update_metric_field(j_edge, "udp_bytes",   bins.udp_bytes,   last_seen[edge].udp_bytes);
-        update_metric_field(j_edge, "udp_packets", bins.udp_packets, last_seen[edge].udp_packets);
+        bool changed = false;
+        changed |= update_metric_field(
+            j_edge, "tcp_bytes", bins.tcp_bytes, last_seen[edge].tcp_bytes);
+        changed |= update_metric_field(
+            j_edge, "tcp_packets", bins.tcp_packets, last_seen[edge].tcp_packets);
+        changed |= update_metric_field(
+            j_edge, "udp_bytes", bins.udp_bytes, last_seen[edge].udp_bytes);
+        changed |= update_metric_field(
+            j_edge, "udp_packets", bins.udp_packets, last_seen[edge].udp_packets);
 
         /// TODO: turn the debug information on for easier tracing
         /// TODO: Use last_seen to caculate the coarse-grain window sum
@@ -519,11 +522,17 @@ void print_in_json(
             << "[udp_bytes])" << std::endl;
         }
 
-        if (j_edge.empty())
+        if (!changed)
             continue;
 
         j_edge["source_ip"] = ip_to_string(edge.source_ip);
         j_edge["dest_ip"] = ip_to_string(edge.destination_ip);
+        j_edge["timestamp"] = print_second;
+        j_edge["samples_per_second"] = poll_hz;
+        j_edge["total_packets"] = sum_metric(j_edge["tcp_packets"])
+                                + sum_metric(j_edge["udp_packets"]);
+        j_edge["total_bytes"] = sum_metric(j_edge["tcp_bytes"])
+                              + sum_metric(j_edge["udp_bytes"]);
         j_ts[edge_to_string(edge)] = j_edge;
     }
 

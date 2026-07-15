@@ -26,6 +26,13 @@ cumulative counters to a userspace collector through pinned BPF maps.
   `(source_ip, destination_ip)` edge.
 - JSON output identifies edges as `<source_ip>:<dest_ip>` and includes explicit
   dotted-decimal `source_ip` and `dest_ip` fields.
+- Every emitted edge contains four arrays of exactly `samples_per_second`
+  elements. Inactive protocols and unsampled positions in a partial second are
+  represented by zeros. Extra polls are ignored rather than written out of
+  bounds.
+- Every emitted edge includes its Unix-second `timestamp`,
+  `samples_per_second`, `total_packets`, and `total_bytes`; totals are computed
+  from the emitted arrays.
 - The userspace collector must be rebuilt whenever the shared map key layout
   changes.
 
