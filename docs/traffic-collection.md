@@ -13,6 +13,8 @@ cumulative counters to a userspace collector through pinned BPF maps.
 3. Userspace polls the pinned map and derives per-interval packet and byte
    deltas for each directed source/destination edge from the cumulative
    counters.
+4. Each active edge-second is written to Redis as a hash with a configurable
+   TTL.
 
 ## Expected Behavior
 
@@ -33,8 +35,18 @@ cumulative counters to a userspace collector through pinned BPF maps.
 - Every emitted edge includes its Unix-second `timestamp`,
   `samples_per_second`, `total_packets`, and `total_bytes`; totals are computed
   from the emitted arrays.
+- Redis keys use `packet:<dest_ip>:<source_ip>:<timestamp>`. Hash fields match
+  the simulator contract except for simulator-only `node_id`.
+- Redis defaults to `localhost:6379` with a 3600-second TTL and can be changed
+  with `--redis-host`, `--redis-port`, and `--redis-ttl`.
 - The userspace collector must be rebuilt whenever the shared map key layout
   changes.
+
+## Failure Behavior
+
+- The collector exits if its initial Redis connection cannot be established.
+- Runtime Redis write or expiration failures are logged; packet collection
+  continues.
 
 ## Key Components
 
@@ -49,3 +61,4 @@ cumulative counters to a userspace collector through pinned BPF maps.
   protocol fields whose counters increase with observed traffic.
 - Rebuild the userspace collector against the same shared header before it
   opens the new map.
+- Confirm Redis contains `packet:*` hashes with the expected fields and TTL.

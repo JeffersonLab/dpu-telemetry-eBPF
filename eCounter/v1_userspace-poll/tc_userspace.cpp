@@ -5,7 +5,7 @@
  * Need to pin the eBPF map first. By default pinned to "/sys/fs/bpf/tc-eg".
  * 
  * Compile without CMakeLists.txt:
- *   g++ -std=c++17 -O2 <this-file>.cpp -o <this-file>.o -lbpf -pthread
+ *   g++ -std=c++17 -O2 <this-file>.cpp -o <this-file>.o -lbpf -lhiredis -pthread
  * 
  * Run it with sudo:
  *   sudo ./<this-file>.o -p|--poll-frequency <target_freq> -m|--map-path <path>
@@ -19,6 +19,7 @@
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
+#include <hiredis/hiredis.h>
 #include <unistd.h>
 #include <thread>
 #include <atomic>
@@ -54,6 +55,9 @@ std::string map_path = "/sys/fs/bpf/tc-eg";
 /// Make it adjustable.
 int export_interval = 1;    // in seconds
 int poll_hz = 20;
+std::string redis_host = "localhost";
+int redis_port = 6379;
+int redis_ttl = 3600;
 
 const unsigned int SLOTS_IN_GLOBAL_RING_BUFFER = 60;
 // ---------------------------------------
@@ -297,6 +301,73 @@ __u64 sum_metric(const json& values) {
     return total;
 }
 
+redisContext* connect_redis() {
+    struct timeval timeout = {2, 0};
+    redisContext* context = redisConnectWithTimeout(
+        redis_host.c_str(), redis_port, timeout);
+    if (context == nullptr || context->err) {
+        std::cerr << "Failed to connect to Redis at " << redis_host << ":"
+                  << redis_port;
+        if (context != nullptr)
+            std::cerr << ": " << context->errstr;
+        std::cerr << std::endl;
+        if (context != nullptr)
+            redisFree(context);
+        return nullptr;
+    }
+    return context;
+}
+
+bool write_edge_to_redis(redisContext* context, const json& edge_record) {
+    std::string key = "packet:" + edge_record["dest_ip"].get<std::string>() + ":"
+                    + edge_record["source_ip"].get<std::string>() + ":"
+                    + std::to_string(edge_record["timestamp"].get<time_t>());
+    std::string udp_packets = edge_record["udp_packets"].dump();
+    std::string udp_bytes = edge_record["udp_bytes"].dump();
+    std::string tcp_packets = edge_record["tcp_packets"].dump();
+    std::string tcp_bytes = edge_record["tcp_bytes"].dump();
+
+    redisReply* reply = static_cast<redisReply*>(redisCommand(
+        context,
+        "HSET %s timestamp %lld source_ip %s dest_ip %s samples_per_second %d "
+        "total_packets %llu total_bytes %llu udp_packets %b udp_bytes %b "
+        "tcp_packets %b tcp_bytes %b",
+        key.c_str(),
+        static_cast<long long>(edge_record["timestamp"].get<time_t>()),
+        edge_record["source_ip"].get_ref<const std::string&>().c_str(),
+        edge_record["dest_ip"].get_ref<const std::string&>().c_str(),
+        edge_record["samples_per_second"].get<int>(),
+        edge_record["total_packets"].get<unsigned long long>(),
+        edge_record["total_bytes"].get<unsigned long long>(),
+        udp_packets.data(), udp_packets.size(),
+        udp_bytes.data(), udp_bytes.size(),
+        tcp_packets.data(), tcp_packets.size(),
+        tcp_bytes.data(), tcp_bytes.size()));
+
+    if (reply == nullptr) {
+        std::cerr << "Redis HSET failed for " << key << ": " << context->errstr << std::endl;
+        return false;
+    }
+    bool ok = reply->type != REDIS_REPLY_ERROR;
+    if (!ok)
+        std::cerr << "Redis HSET failed for " << key << ": " << reply->str << std::endl;
+    freeReplyObject(reply);
+
+    if (!ok || redis_ttl <= 0)
+        return ok;
+
+    reply = static_cast<redisReply*>(redisCommand(context, "EXPIRE %s %d", key.c_str(), redis_ttl));
+    if (reply == nullptr) {
+        std::cerr << "Redis EXPIRE failed for " << key << ": " << context->errstr << std::endl;
+        return false;
+    }
+    ok = reply->type != REDIS_REPLY_ERROR;
+    if (!ok)
+        std::cerr << "Redis EXPIRE failed for " << key << ": " << reply->str << std::endl;
+    freeReplyObject(reply);
+    return ok;
+}
+
 /**
  * @brief Take a snapshot of an eBPF LRU hash map and separate entries into TCP and UDP maps.
  *
@@ -382,8 +453,7 @@ int get_snapshot_bpf_map(int map_fd,
  * - This function acquires `data_mutex` internally to serialize access to `gBuffer`.
  * - If an edge entry does not exist in the target window, a new `BinsPerEdge`
  *   instance is created and initialized with `num_bins` elements per vector.
- * - The function assumes that `polling_id` is within range for all initialized
- *   vectors; no bounds checking is performed for performance reasons.
+ * - Polls beyond the allocated bin count are ignored.
  * - The function overwrites existing values at the given `polling_id` index
  *   instead of accumulating them.
  */
@@ -476,6 +546,7 @@ void append_snapshot_to_metric_bins(
 void print_in_json(
     const time_t print_second,
     std::map<EdgeKey, LastSeen>& last_seen,
+    redisContext* redis_context,
     const bool verbose) {
     json j_ts;
 
@@ -551,6 +622,9 @@ void print_in_json(
 
     /// TODO: not dump to screen
     std::cout << record.dump() << std::endl;
+
+    for (const auto& item : j_ts.items())
+        write_edge_to_redis(redis_context, item.value());
 }
 
 
@@ -558,7 +632,9 @@ void print_in_json(
 CLI helper functions
 */
 void print_usage(const char* prog) {
-    std::cerr << "Usage: " << prog <<" [-p poll-hz] [-m map-path]" << std::endl;
+    std::cerr << "Usage: " << prog
+              << " [-p poll-hz] [-m map-path] [--redis-host host]"
+              << " [--redis-port port] [--redis-ttl seconds]" << std::endl;
 }
 
 void parse_args(int argc, char** argv,
@@ -569,6 +645,12 @@ void parse_args(int argc, char** argv,
             poll_hz = std::stoi(argv[++i]);
         } else if ((arg == "-m" || arg == "--map-path") && i + 1 < argc) {
             map_path = argv[++i];
+        } else if (arg == "--redis-host" && i + 1 < argc) {
+            redis_host = argv[++i];
+        } else if (arg == "--redis-port" && i + 1 < argc) {
+            redis_port = std::stoi(argv[++i]);
+        } else if (arg == "--redis-ttl" && i + 1 < argc) {
+            redis_ttl = std::stoi(argv[++i]);
         } else if (arg == "-v" || arg == "--verbose") {
             verbose = true;
         } else {
@@ -579,6 +661,8 @@ void parse_args(int argc, char** argv,
 
     std::cout << "Poll the eBPF map at " << poll_hz << " Hz\n";
     std::cout << "Processing the eBPF map pinned at: " << map_path << "\n";
+    std::cout << "Writing Redis hashes to: " << redis_host << ":" << redis_port
+              << " with TTL " << redis_ttl << "s\n";
     std::cout << "Verbose mode: " << (verbose ? "ON" : "OFF") << "\n\n";
 }
 /* CLI helper functions
@@ -588,6 +672,15 @@ void parse_args(int argc, char** argv,
 int main(int argc, char** argv) {
     bool verbose = false;
     parse_args(argc, argv, poll_hz, map_path, verbose);
+
+    if (poll_hz <= 0 || 1000000 % poll_hz != 0) {
+        std::cerr << "Polling frequency must be a positive divisor of 1000000" << std::endl;
+        exit(1);
+    }
+    if (redis_port <= 0 || redis_port > 65535 || redis_ttl <= 0) {
+        std::cerr << "Redis port and TTL must be positive" << std::endl;
+        exit(1);
+    }
 
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
@@ -601,18 +694,21 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
+    redisContext* redis_context = connect_redis();
+    if (redis_context == nullptr) {
+        close(map_fd);
+        exit(1);
+    }
+
     /**
      * Continuously polls the eBPF map and aggregates the snapshots into time-series metric bins.
     */
-    if (1000000 % poll_hz != 0) {
-        std::cout << "Error, polling frequency not supported!";
-        exit(-1);
-    }
     auto interval_in_microseconds = std::chrono::microseconds(1000000 / poll_hz);
 
     time_t last_ts = now_sec();
     uint32_t polling_counter = 0;
     int window_id = -1;
+    std::thread reporter_thread;
     while (running) {
         std::map<EdgeKey, traffic_val_t> snapshot_tcp;
         std::map<EdgeKey, traffic_val_t> snapshot_udp;
@@ -625,9 +721,12 @@ int main(int argc, char** argv) {
         if (curr_second != last_ts) {
             if (verbose) {
                 std::cout << "### New tick: " << curr_second << ", window_id=" << window_id << std::endl;
-                }
+            }
             // std::thread(print_latest_metric_bin, last_ts).detach();
-            std::thread(print_in_json, last_ts, std::ref(last_seen), verbose).detach();
+            if (reporter_thread.joinable())
+                reporter_thread.join();
+            reporter_thread = std::thread(
+                print_in_json, last_ts, std::ref(last_seen), redis_context, verbose);
             polling_counter = 0;
             last_ts = curr_second;
         }
@@ -653,6 +752,11 @@ int main(int argc, char** argv) {
             std::this_thread::sleep_for(interval_in_microseconds - elapsed);
         }
     }
+
+    if (reporter_thread.joinable())
+        reporter_thread.join();
+    redisFree(redis_context);
+    close(map_fd);
 
     return 0;
 }
