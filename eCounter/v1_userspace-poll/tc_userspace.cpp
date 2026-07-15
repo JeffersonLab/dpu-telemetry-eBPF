@@ -318,7 +318,8 @@ redisContext* connect_redis() {
     return context;
 }
 
-bool write_edge_to_redis(redisContext* context, const json& edge_record) {
+bool write_edge_to_redis(
+    redisContext* context, const json& edge_record, const bool verbose) {
     std::string key = "packet:" + edge_record["dest_ip"].get<std::string>() + ":"
                     + edge_record["source_ip"].get<std::string>() + ":"
                     + std::to_string(edge_record["timestamp"].get<time_t>());
@@ -365,8 +366,8 @@ bool write_edge_to_redis(redisContext* context, const json& edge_record) {
     if (!ok)
         std::cerr << "Redis EXPIRE failed for " << key << ": " << reply->str << std::endl;
     freeReplyObject(reply);
-    if (ok)
-        std::cout << "Published Redis key: " << key << std::endl;
+    if (ok && verbose)
+        std::cout << "Published Redis key: " << key << '\n';
     return ok;
 }
 
@@ -620,7 +621,7 @@ void print_in_json(
         return;
 
     for (const auto& item : j_ts.items())
-        write_edge_to_redis(redis_context, item.value());
+        write_edge_to_redis(redis_context, item.value(), verbose);
 }
 
 
