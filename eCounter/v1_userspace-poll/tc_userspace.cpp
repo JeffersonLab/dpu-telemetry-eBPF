@@ -66,15 +66,26 @@ struct LastSeen {
     __u64 udp_packets = 0;
 };
 
-// ++ Data structure to store the snapshot values for every IP address
-struct BinsPerIP {
+struct EdgeKey {
+    uint32_t source_ip;
+    uint32_t destination_ip;
+
+    bool operator<(const EdgeKey& other) const {
+        if (source_ip != other.source_ip)
+            return source_ip < other.source_ip;
+        return destination_ip < other.destination_ip;
+    }
+};
+
+// ++ Data structure to store the snapshot values for every directed edge
+struct BinsPerEdge {
     std::vector<__u64> tcp_bytes;
     std::vector<__u64> tcp_packets;
     std::vector<__u64> udp_bytes;
     std::vector<__u64> udp_packets;
 
-    BinsPerIP() = default;
-    explicit BinsPerIP(size_t n)
+    BinsPerEdge() = default;
+    explicit BinsPerEdge(size_t n)
         : tcp_bytes(n, 0),
           tcp_packets(n, 0),
           udp_bytes(n, 0),
@@ -82,7 +93,7 @@ struct BinsPerIP {
 };
 
 // ++ Per coarse-grained data structure
-std::map<uint32_t, BinsPerIP> window; 
+std::map<EdgeKey, BinsPerEdge> window;
 
 std::array<decltype(window), SLOTS_IN_GLOBAL_RING_BUFFER> gBuffer;
 // -----------------------------
@@ -96,6 +107,17 @@ void handle_signal(int) {
 
 std::shared_mutex data_mutex;
 bool first_report = true;
+
+std::string ip_to_string(uint32_t ip) {
+    char ip_str[INET_ADDRSTRLEN] = {};
+    struct in_addr addr = { .s_addr = ip };
+    inet_ntop(AF_INET, &addr, ip_str, sizeof(ip_str));
+    return ip_str;
+}
+
+std::string edge_to_string(const EdgeKey& edge) {
+    return ip_to_string(edge.source_ip) + ":" + ip_to_string(edge.destination_ip);
+}
 
 
 /**
@@ -121,8 +143,8 @@ void print_latest_metric_bin(const time_t print_second) {
     }
 
     std::cout << "\nLatest timestamp: " << print_second << std::endl;
-    for (const auto& [ip, bins] : metric_bins) {
-        std::cout << "\n  IP: " << ip << std::endl;
+    for (const auto& [edge, bins] : metric_bins) {
+        std::cout << "\n  Edge: " << edge_to_string(edge) << std::endl;
 
         auto print_vec = [](const std::string& label, const std::vector<__u64>& vec) {
             std::cout << "    " << label << " = [";
@@ -231,7 +253,7 @@ std::vector<__u64> get_diff_vector(
 }
 
 /**
- * @brief Update a single traffic metric field in the per-IP JSON record and
+ * @brief Update a single traffic metric field in the per-edge JSON record and
  *        advance the corresponding last-seen counter.
  *
  * This helper function encapsulates the common logic used for both TCP/UDP
@@ -244,7 +266,7 @@ std::vector<__u64> get_diff_vector(
  * valid (non-zero) element is found in the snapshot.
  *
  * @param j_ip
- *        Reference to the per-IP JSON object being constructed.
+ *        Reference to the per-edge JSON object being constructed.
  *        The function inserts a new key-value pair using `field_name`
  *        as the JSON field name.
  *
@@ -254,11 +276,11 @@ std::vector<__u64> get_diff_vector(
  *
  * @param snapshot
  *        Vector of cumulative counter values for the metric being updated.
- *        Typically taken from a `BinsPerIP` member (e.g., `bins.tcp_bytes`).
+ *        Typically taken from a `BinsPerEdge` member (e.g., `bins.tcp_bytes`).
  *
  * @param last_seen_val
  *        Reference to the last cumulative value recorded for this metric
- *        and IP. The function updates this value in-place to the last
+ *        and edge. The function updates this value in-place to the last
  *        non-zero snapshot entry processed.
  *
  * @note
@@ -292,17 +314,17 @@ inline void update_metric_field(
  * and the function returns -1 to indicate that some unexpected entries were found.
  *
  * @param map_fd        File descriptor of the BPF map (BPF_MAP_TYPE_LRU_HASH) to read from.
- * @param snapshot_tcp  Output map storing {IP -> traffic_val_t} entries for TCP traffic.
- * @param snapshot_udp  Output map storing {IP -> traffic_val_t} entries for UDP traffic.
+ * @param snapshot_tcp  Output map storing {edge -> traffic_val_t} entries for TCP traffic.
+ * @param snapshot_udp  Output map storing {edge -> traffic_val_t} entries for UDP traffic.
  *
  * @return int  Returns 0 on success (only TCP/UDP entries encountered), or
  *              -1 if any unsupported protocol entries were found in the map.
  *
- * @note The IP address is stored in networking byte order (big-endian) in the output maps.
+ * @note Both IP addresses are stored in networking byte order in the output maps.
  */
 int get_snapshot_bpf_map(int map_fd,
-                     std::map<uint32_t, traffic_val_t>& snapshot_tcp,
-                     std::map<uint32_t, traffic_val_t>& snapshot_udp) {
+                     std::map<EdgeKey, traffic_val_t>& snapshot_tcp,
+                     std::map<EdgeKey, traffic_val_t>& snapshot_udp) {
     traffic_key_t key{}, next_key{};
     traffic_val_t value{};
     bool has_unknown_proto = false;
@@ -310,17 +332,15 @@ int get_snapshot_bpf_map(int map_fd,
     /// TODO: check if we can traverse faster by batching
     while (bpf_map_get_next_key(map_fd, &key, &next_key) == 0) {
         if (bpf_map_lookup_elem(map_fd, &next_key, &value) == 0) {
+            EdgeKey edge = {next_key.source_ip, next_key.destination_ip};
             if (next_key.proto == IPPROTO_TCP) {
-                snapshot_tcp[next_key.ip] = value;
+                snapshot_tcp[edge] = value;
             } else if (next_key.proto == IPPROTO_UDP) {
-                snapshot_udp[next_key.ip] = value;
+                snapshot_udp[edge] = value;
             } else {
                 has_unknown_proto = true;
-                char ip_str[INET_ADDRSTRLEN];
-                struct in_addr addr = { .s_addr = next_key.ip };
-                inet_ntop(AF_INET, &addr, ip_str, sizeof(ip_str));
                 std::cerr << "Warning: unsupported proto " << static_cast<int>(next_key.proto)
-                          << " for IP " << ip_str << std::endl;
+                          << " for edge " << edge_to_string(edge) << std::endl;
             }
         }
         key = next_key;
@@ -334,10 +354,10 @@ int get_snapshot_bpf_map(int map_fd,
  * @brief Append a polling snapshot of TCP and UDP traffic statistics into a specific
  *        time window within the global metric ring buffer.
  *
- * This function updates per-IP traffic metrics (bytes and packets) for a given
+ * This function updates per-edge traffic metrics (bytes and packets) for a given
  * time window (`window_id`) and fine-grained polling tick (`polling_id`).
  * Each window in the global `gBuffer` corresponds to one slot of the ring buffer,
- * where each slot maps IPv4 addresses to their corresponding `BinsPerIP` data structure.
+ * where each slot maps directed edges to their corresponding `BinsPerEdge` data structure.
  *
  * The function ensures thread safety by acquiring a mutex lock internally before
  * modifying the global data structure.
@@ -348,29 +368,29 @@ int get_snapshot_bpf_map(int map_fd,
  *
  * @param polling_id
  *        Index of the fine-grained time tick within the current window, indicating
- *        which position in the per-IP metric vectors will be updated.
+ *        which position in the per-edge metric vectors will be updated.
  *        Must satisfy 0 ≤ polling_id < num_bins.
  *
  * @param num_bins
- *        Total number of bins per IP entry in a `BinsPerIP` instance. Used to
- *        initialize new `BinsPerIP` objects if the IP address is observed for
+ *        Total number of bins per edge entry in a `BinsPerEdge` instance. Used to
+ *        initialize new `BinsPerEdge` objects if the edge is observed for
  *        the first time in the current window.
  *
  * @param snapshot_tcp
- *        Map of TCP traffic statistics, keyed by IPv4 address (in `uint32_t` form).
+ *        Map of TCP traffic statistics, keyed by directed edge.
  *        Each value is a `traffic_val_t` structure containing `bytes` and `packets`
  *        fields, which are written to the corresponding TCP vectors in the
- *        `BinsPerIP` entry.
+ *        `BinsPerEdge` entry.
  *
  * @param snapshot_udp
- *        Map of UDP traffic statistics, keyed by IPv4 address (in `uint32_t` form).
+ *        Map of UDP traffic statistics, keyed by directed edge.
  *        Each value is a `traffic_val_t` structure containing `bytes` and `packets`
  *        fields, which are written to the corresponding UDP vectors in the
- *        `BinsPerIP` entry.
+ *        `BinsPerEdge` entry.
  *
  * @note
  * - This function acquires `data_mutex` internally to serialize access to `gBuffer`.
- * - If an IP entry does not exist in the target window, a new `BinsPerIP`
+ * - If an edge entry does not exist in the target window, a new `BinsPerEdge`
  *   instance is created and initialized with `num_bins` elements per vector.
  * - The function assumes that `polling_id` is within range for all initialized
  *   vectors; no bounds checking is performed for performance reasons.
@@ -381,33 +401,32 @@ void append_snapshot_to_metric_bins(
     const int window_id,
     const uint32_t polling_id,
     const int num_bins,
-    // Map key: IP in integer
-    const std::map<uint32_t, traffic_val_t>& snapshot_tcp,
-    const std::map<uint32_t, traffic_val_t>& snapshot_udp) {
+    const std::map<EdgeKey, traffic_val_t>& snapshot_tcp,
+    const std::map<EdgeKey, traffic_val_t>& snapshot_udp) {
 
     std::unique_lock lock(data_mutex);  // Protect global access
 
     auto& curr_window = gBuffer[window_id];
 
-    for (const auto& [ip, val] : snapshot_tcp) {
-        auto& bins = curr_window[ip];
+    for (const auto& [edge, val] : snapshot_tcp) {
+        auto& bins = curr_window[edge];
 
-        // Initialize vectors if first time this IP appears
+        // Initialize vectors if this edge appears for the first time
         if (bins.tcp_bytes.empty()) {
             /// NOTE: for large polling frequency, used bin number is smaller than num_bins
-            bins = BinsPerIP(num_bins);
+            bins = BinsPerEdge(num_bins);
         }
 
         bins.tcp_bytes[polling_id] = val.bytes;
         bins.tcp_packets[polling_id] = val.packets;
     }
 
-    for (const auto& [ip, val] : snapshot_udp) {
-        auto& bins = curr_window[ip];
+    for (const auto& [edge, val] : snapshot_udp) {
+        auto& bins = curr_window[edge];
 
-        // Initialize vectors if first time this IP appears
+        // Initialize vectors if this edge appears for the first time
         if (bins.udp_bytes.empty()) {
-            bins = BinsPerIP(num_bins);
+            bins = BinsPerEdge(num_bins);
         }
 
         bins.udp_bytes[polling_id] = val.bytes;
@@ -417,18 +436,20 @@ void append_snapshot_to_metric_bins(
 
 
 /**
- * @brief Convert and print the per-IP traffic metrics of a specific window in JSON format.
+ * @brief Convert and print the per-edge traffic metrics of a specific window in JSON format.
  *
- * This function serializes the per-IP TCP/UDP byte and packet counters from the
+ * This function serializes the per-edge TCP/UDP byte and packet counters from the
  * ring buffer slot corresponding to `print_second` into a JSON record.
- * It compares each IP’s most recent counters against the last-seen values stored
+ * It compares each edge's most recent counters against the last-seen values stored
  * in `last_seen` to compute per-interval deltas and outputs only updated entries.
  *
  * The resulting JSON object is structured as:
  * ```
  * {
  *   "<timestamp>": {
- *     "<ip>": {
+ *     "<source_ip>:<dest_ip>": {
+ *       "source_ip": "<source_ip>",
+ *       "dest_ip": "<dest_ip>",
  *       "tcp_bytes": [...],
  *       "tcp_packets": [...],
  *       "udp_bytes": [...],
@@ -444,20 +465,20 @@ void append_snapshot_to_metric_bins(
  *        This value is also used as the JSON record key.
  *
  * @param last_seen
- *        A reference to a map storing the last-seen per-IP counters from the
+ *        A reference to a map storing the last-seen per-edge counters from the
  *        previous print cycle. It is updated in-place with the latest counters
  *        after each call to track deltas between intervals.
  * @param verbose
  *        Helper print last_seen flag.
  *
  * @note
- * - The function accesses the global `gBuffer` to read per-IP bins.
+ * - The function accesses the global `gBuffer` to read per-edge bins.
  * - Only entries with nonzero changes since the previous print are included.
  * - Designed to be invoked asynchronously (e.g., via `std::thread(print_in_json, ...)`).
  * - The output is currently written to `stdout` in pretty-printed JSON form.
  */
 void print_in_json(
-    const time_t print_second, std::map<uint32_t, LastSeen>& last_seen, const bool verbose) {
+    const time_t print_second, std::map<EdgeKey, LastSeen>& last_seen, const bool verbose) {
     json j_ts;
 
     int window_id = print_second % SLOTS_IN_GLOBAL_RING_BUFFER;
@@ -466,45 +487,48 @@ void print_in_json(
 
     // First-time initialization to avoid first data-point spike.
     if (first_report) {
-        for (const auto& [ip, bins] : gBuffer[window_id]) {
-            last_seen[ip].tcp_bytes = bins.tcp_bytes.front();
-            last_seen[ip].tcp_packets = bins.tcp_packets.front();
-            last_seen[ip].udp_bytes = bins.udp_bytes.front();
-            last_seen[ip].udp_packets = bins.udp_packets.front();
+        for (const auto& [edge, bins] : gBuffer[window_id]) {
+            last_seen[edge].tcp_bytes = bins.tcp_bytes.front();
+            last_seen[edge].tcp_packets = bins.tcp_packets.front();
+            last_seen[edge].udp_bytes = bins.udp_bytes.front();
+            last_seen[edge].udp_packets = bins.udp_packets.front();
         }
         first_report = false;
     }
 
     // std::unique_lock lock(data_mutex);
-    for (const auto& [ip, bins] : gBuffer[window_id]) {
-        json j_ip;
+    for (const auto& [edge, bins] : gBuffer[window_id]) {
+        json j_edge;
 
         if (verbose) {
-            std::cout << "<before> last_seen[" << ip << "] = (" << last_seen[ip].tcp_bytes <<\
-            "[tcp_bytes], " << last_seen[ip].udp_bytes << "[udp_bytes])" << std::endl;
+            std::cout << "<before> last_seen[" << edge_to_string(edge) << "] = ("
+            << last_seen[edge].tcp_bytes << "[tcp_bytes], " << last_seen[edge].udp_bytes
+            << "[udp_bytes])" << std::endl;
         }
 
-        update_metric_field(j_ip, "tcp_bytes",   bins.tcp_bytes,   last_seen[ip].tcp_bytes);
-        update_metric_field(j_ip, "tcp_packets", bins.tcp_packets, last_seen[ip].tcp_packets);
-        update_metric_field(j_ip, "udp_bytes",   bins.udp_bytes,   last_seen[ip].udp_bytes);
-        update_metric_field(j_ip, "udp_packets", bins.udp_packets, last_seen[ip].udp_packets);
+        update_metric_field(j_edge, "tcp_bytes",   bins.tcp_bytes,   last_seen[edge].tcp_bytes);
+        update_metric_field(j_edge, "tcp_packets", bins.tcp_packets, last_seen[edge].tcp_packets);
+        update_metric_field(j_edge, "udp_bytes",   bins.udp_bytes,   last_seen[edge].udp_bytes);
+        update_metric_field(j_edge, "udp_packets", bins.udp_packets, last_seen[edge].udp_packets);
 
         /// TODO: turn the debug information on for easier tracing
         /// TODO: Use last_seen to caculate the coarse-grain window sum
         if (verbose) {
-            std::cout << "[DEBUG] <after> last_seen[" << ip << "] = (" << last_seen[ip].tcp_bytes <<\
-            "[tcp_bytes], " << last_seen[ip].udp_bytes << "[udp_bytes])" << std::endl;
+            std::cout << "[DEBUG] <after> last_seen[" << edge_to_string(edge) << "] = ("
+            << last_seen[edge].tcp_bytes << "[tcp_bytes], " << last_seen[edge].udp_bytes
+            << "[udp_bytes])" << std::endl;
         }
 
-        if (j_ip.empty())
+        if (j_edge.empty())
             continue;
 
-        /// TODO: update this to include a (src, dst) pair
-        j_ts[std::to_string(ip)] = j_ip;
+        j_edge["source_ip"] = ip_to_string(edge.source_ip);
+        j_edge["dest_ip"] = ip_to_string(edge.destination_ip);
+        j_ts[edge_to_string(edge)] = j_edge;
     }
 
     // Reset this slot in the ring buffer to zeros
-    for (auto& [ip, bins] : gBuffer[window_id]) {
+    for (auto& [edge, bins] : gBuffer[window_id]) {
         std::fill(bins.tcp_bytes.begin(),     bins.tcp_bytes.end(), 0);
         std::fill(bins.tcp_packets.begin(),   bins.tcp_packets.end(), 0);
         std::fill(bins.udp_bytes.begin(),     bins.udp_bytes.end(), 0);
@@ -559,7 +583,7 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
 
-    std::map<uint32_t, LastSeen> last_seen;
+    std::map<EdgeKey, LastSeen> last_seen;
 
     // Sanity check for openning the eBPF map
     int map_fd = bpf_obj_get(map_path.c_str());
@@ -581,8 +605,8 @@ int main(int argc, char** argv) {
     uint32_t polling_counter = 0;
     int window_id = -1;
     while (running) {
-        std::map<uint32_t, traffic_val_t> snapshot_tcp;
-        std::map<uint32_t, traffic_val_t> snapshot_udp;
+        std::map<EdgeKey, traffic_val_t> snapshot_tcp;
+        std::map<EdgeKey, traffic_val_t> snapshot_udp;
         time_t curr_second = now_sec();
 
         // Using steady_clock() to measure time elapsed.

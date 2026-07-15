@@ -11,7 +11,8 @@ cumulative counters to a userspace collector through pinned BPF maps.
 2. TCP and UDP packets are counted by source address, destination address, and
    IP protocol.
 3. Userspace polls the pinned map and derives per-interval packet and byte
-   deltas from the cumulative counters.
+   deltas for each directed source/destination edge from the cumulative
+   counters.
 
 ## Expected Behavior
 
@@ -21,6 +22,10 @@ cumulative counters to a userspace collector through pinned BPF maps.
 - Counters contain packet totals and IPv4 `tot_len` byte totals.
 - Non-IPv4 and non-TCP/UDP traffic is ignored.
 - Packets continue through the networking stack with `TC_ACT_OK`.
+- Userspace keeps independent bins and last-seen counters for each directed
+  `(source_ip, destination_ip)` edge.
+- JSON output identifies edges as `<source_ip>:<dest_ip>` and includes explicit
+  dotted-decimal `source_ip` and `dest_ip` fields.
 - The userspace collector must be rebuilt whenever the shared map key layout
   changes.
 
