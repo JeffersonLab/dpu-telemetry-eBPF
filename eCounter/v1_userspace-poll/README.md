@@ -1,3 +1,128 @@
+# TC ingress and userspace collector
+
+This setup counts incoming IPv4 TCP/UDP traffic with `kernel_ingress_tc.c`, pins its map, and runs `tc_collector` to write per-edge samples to Redis. Repeat it on each Linux node whose incoming traffic you want to observe.
+
+For central Redis/backend startup and the local frontend, see the [eCenter setup guide](https://github.com/cissieAB/eCenter/blob/main/docs/setup.md). For the data format and behavior, see [Traffic collection](../../docs/traffic-collection.md). Start Redis before running the collector.
+
+## Prerequisites
+
+Use Linux with BPF/TC support and administrator privileges for attaching programs and opening maps. Install Clang/LLVM with a BPF target, Linux headers, libbpf development files, `bpftool`, `tc`, CMake, a C++17 compiler, a build tool, and hiredis development files.
+
+For DNF-based systems, an example installation is:
+
+```bash
+sudo dnf install -y clang llvm libbpf-devel bpftool iproute kernel-headers cmake gcc-c++ make hiredis-devel
+```
+
+Package names and repository availability vary by distribution. On other Linux distributions, install equivalent packages. The BPF filesystem must be mounted at `/sys/fs/bpf` before pinning maps.
+
+## Compile and attach
+
+Replace `<telemetry-repo>` with the absolute path of this repository and `<interface>` with the interface carrying the incoming traffic. Keep the following steps in the same terminal so the variables remain available.
+
+```bash
+cd <telemetry-repo>/eCounter/v1_userspace-poll
+ip link show
+TELEMETRY_IFACE='<interface>'
+TELEMETRY_MAP_PATH='/sys/fs/bpf/tc-ing'
+clang -O2 -g -target bpf -c kernel_ingress_tc.c -o kernel_ingress_tc.o
+```
+
+If architecture-specific headers such as `asm/types.h` cannot be found, install the matching headers and add their actual include directory with `-I`. The historical architecture-specific path below is an example, not a portable default.
+
+Inspect the interface before attaching:
+
+```bash
+sudo tc qdisc show dev "$TELEMETRY_IFACE"
+sudo tc filter show dev "$TELEMETRY_IFACE" ingress
+```
+
+Add `clsact` only if it is absent:
+
+```bash
+sudo tc qdisc add dev "$TELEMETRY_IFACE" clsact
+```
+
+Attach the program once, then verify:
+
+```bash
+sudo tc filter add dev "$TELEMETRY_IFACE" ingress bpf da obj kernel_ingress_tc.o sec tc-ing
+sudo tc filter show dev "$TELEMETRY_IFACE" ingress
+sudo bpftool map show name map_in_tc
+```
+
+The object uses section `tc-ing` and map name `map_in_tc`. If the collector program is already attached, inspect that attachment before adding another copy.
+
+## Pin the map
+
+For a single map named `map_in_tc`:
+
+```bash
+sudo bpftool map pin name map_in_tc "$TELEMETRY_MAP_PATH"
+sudo bpftool map show pinned "$TELEMETRY_MAP_PATH"
+sudo bpftool map dump pinned "$TELEMETRY_MAP_PATH"
+```
+
+If multiple maps have the same name, identify the intended attachment's map and pin it by ID instead. If the pin path exists already, verify it refers to the current attachment's map before reusing it. Use distinct pin paths for separate interfaces.
+
+## Build and run
+
+From the same directory, build the userspace collector:
+
+```bash
+cmake -S . -B build
+cmake --build build
+sudo ./build/tc_collector --redis-host <redis-host> --poll-hz 20 --map-path "$TELEMETRY_MAP_PATH"
+```
+
+Replace `<redis-host>` with the reachable hostname or IP of the Redis machine. Use `localhost` if Redis is published on this node. The Compose hostname `redis` is for containers on the Compose network, not collectors on other hosts. The Redis address can differ from the data-network addresses observed in packets.
+
+For later runs, use the existing binary directly:
+
+```bash
+cd <telemetry-repo>/eCounter/v1_userspace-poll
+sudo ./build/tc_collector --redis-host <redis-host> --poll-hz 20 --map-path /sys/fs/bpf/tc-ing
+```
+
+Adjust the pin path if you chose a different one. Rebuild after source changes. If the shared map layout in `tc_common.h` changes, rebuild both the kernel object and userspace binary and attach/pin a fresh matching map.
+
+## Collector options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `-p`, `--poll-hz` | `20` | Samples per second; must be a positive divisor of 1,000,000. |
+| `-m`, `--map-path` | `/sys/fs/bpf/tc-eg` | Pinned map path. Explicitly pass `/sys/fs/bpf/tc-ing` for this ingress setup. |
+| `--redis-host` | `localhost` | Redis hostname or IP. |
+| `--redis-port` | `6379` | Redis port, from 1 through 65535. |
+| `--redis-ttl` | `3600` | Positive record retention time in seconds. |
+| `-v`, `--verbose` | Off | Log successfully published Redis keys. |
+
+The collector writes `packet:<dest_ip>:<source_ip>:<timestamp>` hashes to Redis database 0. There is no Redis database selector in this CLI. Keep the backend on the same database.
+
+## Verify and stop
+
+To generate TCP or UDP traffic for verification, see the [iperf3 testing guide](../../docs/iperf3.md). Run the server on the monitored node and send traffic from another node to the monitored interface's IPv4 address.
+
+Generate IPv4 TCP/UDP traffic into the selected interface from another node, then inspect the map in another terminal:
+
+```bash
+sudo bpftool map dump pinned /sys/fs/bpf/tc-ing
+```
+
+Use your chosen pin path if different. Counters should change for the expected source/destination pair. Use `--verbose` on the collector to see published keys. The backend topology must contain the observed IPs for the intended graph layout; those IPs can differ from management addresses.
+
+- **Compile fails:** check BPF target support, development packages, and architecture-specific include paths.
+- **Map cannot be opened:** check the attachment, pin path, and privileges. The collector's default path is not this guide's ingress path.
+- **Map stays empty:** check the selected interface and that incoming traffic is IPv4 TCP/UDP.
+- **Map changes but no Redis records:** inspect collector logs, Redis address/port, and connectivity. An initial Redis connection failure exits; runtime write failures are logged.
+- **Graph stays empty:** check collector output, backend database and topology, and that traffic is still arriving.
+
+Stop the collector with `Ctrl+C`. This leaves the kernel attachment and map pin available for reuse. For a full teardown, inspect and remove only this run's TC filter and map pin. Remove `clsact` only if no other filters need it; do not use a blanket ingress-filter deletion on a shared interface.
+
+## Historical TC/XDP examples
+
+The original notes below are retained for reference. They describe other programs, machine-specific paths, and output formats; use the setup above for the current TC ingress → Redis workflow. Their broad cleanup commands apply only to an interface dedicated to that example.
+
 ## Traffic counter by IPv4 addresses
 
 
