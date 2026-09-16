@@ -78,9 +78,7 @@ int xdp_ingress(struct xdp_md *ctx) {
     }
 
     // Update the Map's value field.
-    // XDP runs in the driver before the kernel allocates an skb, so skb->len
-    // (used by the TC programs) is not available here. For now count L3 and
-    // above only, excluding the Ethernet header.
+    // Count IPv4 tot_len, L3 and above, so TC and XDP byte counts match.
     __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
     __sync_fetch_and_add(&val->blocks, 1);
     __sync_fetch_and_add(&val->bytes, payload_len);

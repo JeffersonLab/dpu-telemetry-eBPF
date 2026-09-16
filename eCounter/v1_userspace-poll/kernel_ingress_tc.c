@@ -79,9 +79,9 @@ int tc_egress(struct __sk_buff *skb) {
     }
 
     // Update the Map's value field.
-    // skb->len is the full frame from L2 up, including the Ethernet header.
+    // Count IPv4 tot_len, L3 and above, so TC and XDP byte counts match.
     __sync_fetch_and_add(&val->blocks, 1);
-    __sync_fetch_and_add(&val->bytes, skb->len);
+    __sync_fetch_and_add(&val->bytes, bpf_ntohs(ip->tot_len));
         
     return TC_ACT_OK;
 }
