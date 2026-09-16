@@ -1,10 +1,8 @@
 /**
- * The TC kernel program to count the outgoing IPv4 TCP/UDP packets.
- * 
- * 
  * Checked-in date: June 10, 2025
- * Author: xmei@jlab.org, ChatGPT
- * Test: "nvidarm" Host
+ * Last updated: Sep 16, 2026
+ *
+ * The TC kernel program to count the outgoing IPv4 TCP/UDP blocks.
  */
 
 #include <linux/bpf.h>
@@ -73,7 +71,7 @@ int tc_egress(struct __sk_buff *skb) {
             return TC_ACT_OK;
     }
 
-    __sync_fetch_and_add(&val->packets, 1);
+    __sync_fetch_and_add(&val->blocks, 1);
     // skb->len is the full frame from L2 up, including the Ethernet header.
     __sync_fetch_and_add(&val->bytes, skb->len);
 

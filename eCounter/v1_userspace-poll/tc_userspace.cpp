@@ -1,20 +1,12 @@
 /**
+ * Checked-in date: July 16, 2025
+ * Last updated: Sep 16, 2026
+ *
  * Collect local network traffic by src/dst IPv4 addresses at up to 1000 Hz per second.
  * Output the report in a JSON format.
- * 
- * Need to pin the eBPF map first. By default pinned to "/sys/fs/bpf/tc-eg".
- * 
- * Compile without CMakeLists.txt:
- *   g++ -std=c++17 -O2 <this-file>.cpp -o <this-file>.o -lbpf -lhiredis -pthread
- * 
- * Run it with sudo:
- *   sudo ./<this-file>.o -p|--poll-frequency <target_freq> -m|--map-path <path>
- * 
- * @author: xmei@jlab.org, ChatGPT
- * First checked in @date: July 16, 2025
- * Updated @date: Nov 11, 2025
- * @test on "nvidarm" with unidirectional traffic of up to 2000 Hz.
-*/
+ *
+ * Need to pin the eBPF map first. By default pinned to "/sys/fs/bpf/tc-xxx".
+ */
 
 
 #include <bpf/libbpf.h>
@@ -67,9 +59,9 @@ const unsigned int SLOTS_IN_GLOBAL_RING_BUFFER = 60;
 // ++ Data structure for snapshot at fine-grained time ticks
 struct LastSeen {
     __u64 tcp_bytes = 0;
-    __u64 tcp_packets = 0;
+    __u64 tcp_blocks = 0;
     __u64 udp_bytes = 0;
-    __u64 udp_packets = 0;
+    __u64 udp_blocks = 0;
 };
 
 struct EdgeKey {
@@ -86,16 +78,16 @@ struct EdgeKey {
 // ++ Data structure to store the snapshot values for every directed edge
 struct BinsPerEdge {
     std::vector<__u64> tcp_bytes;
-    std::vector<__u64> tcp_packets;
+    std::vector<__u64> tcp_blocks;
     std::vector<__u64> udp_bytes;
-    std::vector<__u64> udp_packets;
+    std::vector<__u64> udp_blocks;
 
     BinsPerEdge() = default;
     explicit BinsPerEdge(size_t n)
         : tcp_bytes(n, 0),
-          tcp_packets(n, 0),
+          tcp_blocks(n, 0),
           udp_bytes(n, 0),
-          udp_packets(n, 0) {};
+          udp_blocks(n, 0) {};
 };
 
 // ++ Per coarse-grained data structure
@@ -162,9 +154,9 @@ void print_latest_metric_bin(const time_t print_second) {
         };
 
         print_vec("tcp_bytes", bins.tcp_bytes);
-        print_vec("tcp_packets", bins.tcp_packets);
+        print_vec("tcp_blocks", bins.tcp_blocks);
         print_vec("udp_bytes", bins.udp_bytes);
-        print_vec("udp_packets", bins.udp_packets);
+        print_vec("udp_blocks", bins.udp_blocks);
     }
 }
 
@@ -179,7 +171,7 @@ void print_latest_metric_bin(const time_t print_second) {
  *
  * The function does not modify the input `snapshot` vector or `last_seen`.
  *
- * @param snapshot   Vector of cumulative values (e.g., bytes or packets).
+ * @param snapshot   Vector of cumulative values (e.g., bytes or blocks).
  * @param last_seen  Reference to the last value seen before this snapshot.
  *                   Used to compute the first delta.
  * @return One delta per allocated polling bin and whether any delta is non-zero.
@@ -252,7 +244,7 @@ MetricDiff get_diff_vector(
  *        advance the corresponding last-seen counter.
  *
  * This helper function encapsulates the common logic used for both TCP/UDP
- * byte and packet metrics. It computes per-interval differences between the
+ * byte and block metrics. It computes per-interval differences between the
  * current snapshot (`snapshot`) and the previously recorded cumulative value
  * (`last_seen_val`), stores the completed-sample vector in the JSON object
  * (`j_edge`), and updates `last_seen_val` to the latest cumulative value.
@@ -265,8 +257,8 @@ MetricDiff get_diff_vector(
  *        as the JSON field name.
  *
  * @param field_name
- *        Name of the metric field (e.g., `"tcp_bytes"`, `"tcp_packets"`,
- *        `"udp_bytes"`, `"udp_packets"`).
+ *        Name of the metric field (e.g., `"tcp_bytes"`, `"tcp_blocks"`,
+ *        `"udp_bytes"`, `"udp_blocks"`).
  *
  * @param snapshot
  *        Vector of cumulative counter values for the metric being updated.
@@ -335,12 +327,12 @@ void write_edges_to_redis(
 
     for (const auto& item : edge_records.items()) {
         const json& edge_record = item.value();
-        std::string key = "packet:" + edge_record["dest_ip"].get<std::string>() + ":"
+        std::string key = "block:" + edge_record["dest_ip"].get<std::string>() + ":"
                         + edge_record["source_ip"].get<std::string>() + ":"
                         + std::to_string(edge_record["timestamp"].get<time_t>());
-        std::string udp_packets = edge_record["udp_packets"].dump();
+        std::string udp_blocks = edge_record["udp_blocks"].dump();
         std::string udp_bytes = edge_record["udp_bytes"].dump();
-        std::string tcp_packets = edge_record["tcp_packets"].dump();
+        std::string tcp_blocks = edge_record["tcp_blocks"].dump();
         std::string tcp_bytes = edge_record["tcp_bytes"].dump();
         const size_t edge_index = writes.size();
         writes.push_back({key});
@@ -348,18 +340,18 @@ void write_edges_to_redis(
         if (redisAppendCommand(
                 context,
                 "HSET %s timestamp %lld source_ip %s dest_ip %s samples_per_second %d "
-                "total_packets %llu total_bytes %llu udp_packets %b udp_bytes %b "
-                "tcp_packets %b tcp_bytes %b",
+                "total_blocks %llu total_bytes %llu udp_blocks %b udp_bytes %b "
+                "tcp_blocks %b tcp_bytes %b",
                 key.c_str(),
                 static_cast<long long>(edge_record["timestamp"].get<time_t>()),
                 edge_record["source_ip"].get_ref<const std::string&>().c_str(),
                 edge_record["dest_ip"].get_ref<const std::string&>().c_str(),
                 edge_record["samples_per_second"].get<int>(),
-                edge_record["total_packets"].get<unsigned long long>(),
+                edge_record["total_blocks"].get<unsigned long long>(),
                 edge_record["total_bytes"].get<unsigned long long>(),
-                udp_packets.data(), udp_packets.size(),
+                udp_blocks.data(), udp_blocks.size(),
                 udp_bytes.data(), udp_bytes.size(),
-                tcp_packets.data(), tcp_packets.size(),
+                tcp_blocks.data(), tcp_blocks.size(),
                 tcp_bytes.data(), tcp_bytes.size()) != REDIS_OK) {
             std::cerr << "Redis HSET queue failed for " << key << ": "
                       << context->errstr << std::endl;
@@ -454,7 +446,7 @@ int get_snapshot_bpf_map(int map_fd,
  * @brief Append a polling snapshot of TCP and UDP traffic statistics into a specific
  *        time window within the global metric ring buffer.
  *
- * This function updates per-edge traffic metrics (bytes and packets) for a given
+ * This function updates per-edge traffic metrics (bytes and blocks) for a given
  * time window (`window_id`) and fine-grained polling tick (`polling_id`).
  * Each window in the global `gBuffer` corresponds to one slot of the ring buffer,
  * where each slot maps directed edges to their corresponding `BinsPerEdge` data structure.
@@ -478,13 +470,13 @@ int get_snapshot_bpf_map(int map_fd,
  *
  * @param snapshot_tcp
  *        Map of TCP traffic statistics, keyed by directed edge.
- *        Each value is a `traffic_val_t` structure containing `bytes` and `packets`
+ *        Each value is a `traffic_val_t` structure containing `bytes` and `blocks`
  *        fields, which are written to the corresponding TCP vectors in the
  *        `BinsPerEdge` entry.
  *
  * @param snapshot_udp
  *        Map of UDP traffic statistics, keyed by directed edge.
- *        Each value is a `traffic_val_t` structure containing `bytes` and `packets`
+ *        Each value is a `traffic_val_t` structure containing `bytes` and `blocks`
  *        fields, which are written to the corresponding UDP vectors in the
  *        `BinsPerEdge` entry.
  *
@@ -520,7 +512,7 @@ void append_snapshot_to_metric_bins(
         }
 
         bins.tcp_bytes[polling_id] = val.bytes;
-        bins.tcp_packets[polling_id] = val.packets;
+        bins.tcp_blocks[polling_id] = val.blocks;
     }
 
     for (const auto& [edge, val] : snapshot_udp) {
@@ -532,7 +524,7 @@ void append_snapshot_to_metric_bins(
         }
 
         bins.udp_bytes[polling_id] = val.bytes;
-        bins.udp_packets[polling_id] = val.packets;
+        bins.udp_blocks[polling_id] = val.blocks;
     }
 }
 
@@ -540,7 +532,7 @@ void append_snapshot_to_metric_bins(
 /**
  * @brief Convert and print the per-edge traffic metrics of a specific window in JSON format.
  *
- * This function serializes the per-edge TCP/UDP byte and packet counters from the
+ * This function serializes the per-edge TCP/UDP byte and block counters from the
  * ring buffer slot corresponding to `print_second` into a JSON record.
  * It compares each edge's most recent counters against the last-seen values stored
  * in `last_seen` to compute per-interval deltas and outputs only updated entries.
@@ -554,12 +546,12 @@ void append_snapshot_to_metric_bins(
  *       "dest_ip": "<dest_ip>",
  *       "timestamp": 1234567890,
  *       "samples_per_second": 20,
- *       "total_packets": 0,
+ *       "total_blocks": 0,
  *       "total_bytes": 0,
  *       "tcp_bytes": [...],
- *       "tcp_packets": [...],
+ *       "tcp_blocks": [...],
  *       "udp_bytes": [...],
- *       "udp_packets": [...]
+ *       "udp_blocks": [...]
  *     },
  *     ...
  *   }
@@ -597,9 +589,9 @@ void print_in_json(
     if (first_report) {
         for (const auto& [edge, bins] : gBuffer[window_id]) {
             last_seen[edge].tcp_bytes = bins.tcp_bytes.front();
-            last_seen[edge].tcp_packets = bins.tcp_packets.front();
+            last_seen[edge].tcp_blocks = bins.tcp_blocks.front();
             last_seen[edge].udp_bytes = bins.udp_bytes.front();
-            last_seen[edge].udp_packets = bins.udp_packets.front();
+            last_seen[edge].udp_blocks = bins.udp_blocks.front();
         }
         first_report = false;
     }
@@ -618,11 +610,11 @@ void print_in_json(
         changed |= update_metric_field(
             j_edge, "tcp_bytes", bins.tcp_bytes, last_seen[edge].tcp_bytes);
         changed |= update_metric_field(
-            j_edge, "tcp_packets", bins.tcp_packets, last_seen[edge].tcp_packets);
+            j_edge, "tcp_blocks", bins.tcp_blocks, last_seen[edge].tcp_blocks);
         changed |= update_metric_field(
             j_edge, "udp_bytes", bins.udp_bytes, last_seen[edge].udp_bytes);
         changed |= update_metric_field(
-            j_edge, "udp_packets", bins.udp_packets, last_seen[edge].udp_packets);
+            j_edge, "udp_blocks", bins.udp_blocks, last_seen[edge].udp_blocks);
 
         /// TODO: turn the debug information on for easier tracing
         /// TODO: Use last_seen to caculate the coarse-grain window sum
@@ -639,8 +631,8 @@ void print_in_json(
         j_edge["dest_ip"] = ip_to_string(edge.destination_ip);
         j_edge["timestamp"] = print_second;
         j_edge["samples_per_second"] = poll_hz;
-        j_edge["total_packets"] = sum_metric(j_edge["tcp_packets"])
-                                + sum_metric(j_edge["udp_packets"]);
+        j_edge["total_blocks"] = sum_metric(j_edge["tcp_blocks"])
+                               + sum_metric(j_edge["udp_blocks"]);
         j_edge["total_bytes"] = sum_metric(j_edge["tcp_bytes"])
                               + sum_metric(j_edge["udp_bytes"]);
         j_ts[edge_to_string(edge)] = j_edge;
@@ -649,9 +641,9 @@ void print_in_json(
     // Reset this slot in the ring buffer to zeros
     for (auto& [edge, bins] : gBuffer[window_id]) {
         std::fill(bins.tcp_bytes.begin(),     bins.tcp_bytes.end(), 0);
-        std::fill(bins.tcp_packets.begin(),   bins.tcp_packets.end(), 0);
+        std::fill(bins.tcp_blocks.begin(),    bins.tcp_blocks.end(), 0);
         std::fill(bins.udp_bytes.begin(),     bins.udp_bytes.end(), 0);
-        std::fill(bins.udp_packets.begin(),   bins.udp_packets.end(), 0);
+        std::fill(bins.udp_blocks.begin(),    bins.udp_blocks.end(), 0);
     }
     if (j_ts.empty())
         return;

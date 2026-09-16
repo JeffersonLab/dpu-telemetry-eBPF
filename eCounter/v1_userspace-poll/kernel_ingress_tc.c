@@ -1,9 +1,8 @@
 /**
- * The TC kernel program to count the incoming IPv4 TCP/UDP packets.
- *
  * Checked-in date: June 9, 2025
- * Author: xmei@jlab.org, ChatGPT
- * Test: "nvidarm" Host
+ * Last updated: Sep 16, 2026
+ *
+ * The TC kernel program to count the incoming IPv4 TCP/UDP blocks.
  */
 
 #include <linux/bpf.h>  // needs -I/usr/include/aarch64-linux-gnu when compile & build
@@ -34,8 +33,8 @@ struct {
  */
 SEC("tc-ing")
 int tc_egress(struct __sk_buff *skb) {
-    void *data = (void *)(long)skb->data;  // start of the packet
-    void *data_end = (void *)(long)skb->data_end;  // end of the packet
+    void *data = (void *)(long)skb->data;  // start of the block
+    void *data_end = (void *)(long)skb->data_end;  // end of the block
 
     // Memory overflow examination is a must-have to pass the eBPF program compiling.
     struct ethhdr *eth = data;
@@ -58,7 +57,7 @@ int tc_egress(struct __sk_buff *skb) {
         .proto = ip->protocol,
     };
 
-    /// NOTE: Ignore packets from 0.0.0.0, the unspecified address. Only a host
+    /// NOTE: Ignore blocks from 0.0.0.0, the unspecified address. Only a host
     /// without an IP yet sends from it; for IPv4 TCP/UDP that is DHCP
     /// (DISCOVER/REQUEST, 0.0.0.0:68 -> 255.255.255.255:67). Broadcast and
     /// multicast are destination addresses and are NOT filtered here.
@@ -81,7 +80,7 @@ int tc_egress(struct __sk_buff *skb) {
 
     // Update the Map's value field.
     // skb->len is the full frame from L2 up, including the Ethernet header.
-    __sync_fetch_and_add(&val->packets, 1);
+    __sync_fetch_and_add(&val->blocks, 1);
     __sync_fetch_and_add(&val->bytes, skb->len);
         
     return TC_ACT_OK;

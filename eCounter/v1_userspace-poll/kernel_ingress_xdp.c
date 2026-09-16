@@ -1,13 +1,12 @@
 /**
- * The XDP kernel program to count the incoming IPv4 TCP/UDP packets.
- * 
+ * Checked-in date: June 9, 2025
+ * Last updated: Sep 16, 2026
+ *
+ * The XDP kernel program to count the incoming IPv4 TCP/UDP blocks.
+ *
  * NOTE: XDP driver/native mode ONLY applies to MTU <= 3498. If using jumbo frames,
  * such as MTU=9000, the program falls back to the XDP generic mode, which is slower
  * than TC.
- * 
- * Checked-in date: June 9, 2025
- * Author: xmei@jlab.org, ChatGPT
- * Test: "nvidarm" Host
  */
 
 
@@ -57,7 +56,7 @@ int xdp_ingress(struct xdp_md *ctx) {
         .proto = ip->protocol,
     };
 
-    /// NOTE: Ignore packets from 0.0.0.0, the unspecified address. Only a host
+    /// NOTE: Ignore blocks from 0.0.0.0, the unspecified address. Only a host
     /// without an IP yet sends from it; for IPv4 TCP/UDP that is DHCP
     /// (DISCOVER/REQUEST, 0.0.0.0:68 -> 255.255.255.255:67). Broadcast and
     /// multicast are destination addresses and are NOT filtered here.
@@ -83,7 +82,7 @@ int xdp_ingress(struct xdp_md *ctx) {
     // (used by the TC programs) is not available here. For now count L3 and
     // above only, excluding the Ethernet header.
     __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
-    __sync_fetch_and_add(&val->packets, 1);
+    __sync_fetch_and_add(&val->blocks, 1);
     __sync_fetch_and_add(&val->bytes, payload_len);
 
     return XDP_PASS;
