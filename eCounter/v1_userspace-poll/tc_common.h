@@ -1,6 +1,6 @@
 /**
  * eBPF Map (kernel) key&value structure definitions for both ingress and egress traffic.
- * 
+ *
  * Checked-in date: June-9, 2025
  * Author: xmei@jlab.org, ChatGPT
  * Test: "nvidarm" Host, "ejfat-6", "ejfat-5"
