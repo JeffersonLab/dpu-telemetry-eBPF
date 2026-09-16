@@ -127,7 +127,7 @@ Adjust the pin path if you chose a different one. Rebuild after source changes. 
 | `--redis-ttl` | `3600` | Positive record retention time in seconds. |
 | `-v`, `--verbose` | Off | Log successfully published Redis keys. |
 
-The collector writes `packet:<dest_ip>:<source_ip>:<timestamp>` hashes to Redis database 0. There is no Redis database selector in this CLI. Keep the backend on the same database.
+The collector writes `block:<dest_ip>:<source_ip>:<timestamp>` hashes to Redis database 0. There is no Redis database selector in this CLI. Keep the backend on the same database.
 
 ## Verify
 
@@ -148,7 +148,7 @@ sudo bpftool map dump pinned /sys/fs/bpf/tc-ing
             "pad": [0,0,0]
         },
         "value": {
-            "packets": 173416415,
+            "blocks": 173416415,
             "bytes": 257392610459
         }
     }
@@ -164,7 +164,7 @@ A single `nc` stream is the simplest end-to-end check:
 1. On the monitored host, start a UDP listener in keep-listening mode: `nc -l -u -k <port_number>`.
 2. From another node, send UDP traffic to the monitored interface's IPv4 address: `nc -u <monitored_ipv4> <port_number>`.
 
-Type a few lines into the sender. Each one should bump `packets`/`bytes` for the matching `(source_ip, destination_ip, proto=17)` key in the map dump, and — with `--verbose` on the collector — produce `Published Redis key: packet:<dest>:<src>:<ts>` lines.
+Type a few lines into the sender. Each one should bump `blocks`/`bytes` for the matching `(source_ip, destination_ip, proto=17)` key in the map dump, and — with `--verbose` on the collector — produce `Published Redis key: block:<dest>:<src>:<ts>` lines.
 
 ### Test with `iperf3`
 

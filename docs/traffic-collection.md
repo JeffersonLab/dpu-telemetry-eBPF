@@ -34,9 +34,9 @@ cumulative counters to a userspace collector through pinned BPF maps.
   represented by zeros. Extra polls are ignored rather than written out of
   bounds.
 - Every emitted edge includes its Unix-second `timestamp`,
-  `samples_per_second`, `total_packets`, and `total_bytes`; totals are computed
+  `samples_per_second`, `total_blocks`, and `total_bytes`; totals are computed
   from the emitted arrays.
-- Redis keys use `packet:<dest_ip>:<source_ip>:<timestamp>`. Hash fields match
+- Redis keys use `block:<dest_ip>:<source_ip>:<timestamp>`. Hash fields match
   the simulator contract except for simulator-only `node_id`.
 - Redis defaults to `localhost:6379` with a 3600-second TTL and can be changed
   with `--redis-host`, `--redis-port`, and `--redis-ttl`.
@@ -66,4 +66,4 @@ cumulative counters to a userspace collector through pinned BPF maps.
   protocol fields whose counters increase with observed traffic.
 - Rebuild the userspace collector against the same shared header before it
   opens the new map.
-- Confirm Redis contains `packet:*` hashes with the expected fields and TTL.
+- Confirm Redis contains `block:*` hashes with the expected fields and TTL.

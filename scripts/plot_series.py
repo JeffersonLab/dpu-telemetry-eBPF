@@ -19,7 +19,7 @@ def extract_udp_by_line(file_path, line_id):
         ts = next(iter(data))  # Only one timestamp per line
         ip_data = next(iter(data[ts].values()))
         udp_bytes = ip_data.get("udp_bytes")
-        udp_packets = ip_data.get("udp_packets", [])
+        udp_packets = ip_data.get("udp_blocks", ip_data.get("udp_packets", []))
         print(f"{line_id}, {len(udp_packets)}, {sum(udp_packets)}, {min(udp_packets)}, {max(udp_packets)}")
         return udp_bytes, udp_packets
 
