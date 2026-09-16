@@ -52,12 +52,13 @@ int xdp_ingress(struct xdp_md *ctx) {
         return XDP_PASS;
 
     struct traffic_key_t key = {
-        .ip = ip->saddr,
+        .source_ip = ip->saddr,
+        .destination_ip = ip->daddr,
         .proto = ip->protocol,
     };
 
     // Ignore the trffic from 0.0.0.0 now. Multicast or broadcast traffic?
-    if (key.ip == 0)
+    if (key.source_ip == 0)
         return XDP_PASS;
     
     // Only count the UDP and TCP traffix now.

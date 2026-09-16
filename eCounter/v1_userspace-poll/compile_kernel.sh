@@ -18,7 +18,8 @@ for kernel in "${kernels[@]}"; do
     cfile="${kernel}.c"
     obj="${kernel}.o"
     echo "Compiling $cfile -> $obj"
-    sudo clang -O2 -g -target bpf $INC -c "$cfile" -o "$obj"
+    # No root needed to compile; only attaching the .o via tc/ip requires sudo.
+    clang -O2 -g -target bpf $INC -c "$cfile" -o "$obj"
     if [[ $? -ne 0 ]]; then
         echo "Compilation failed for $cfile"
         exit 1

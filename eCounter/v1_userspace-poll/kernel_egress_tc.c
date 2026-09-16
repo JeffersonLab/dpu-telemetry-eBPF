@@ -52,11 +52,12 @@ int tc_egress(struct __sk_buff *skb) {
         return TC_ACT_OK;
 
     struct traffic_key_t key = {
-        .ip = ip->daddr,
+        .source_ip = ip->saddr,
+        .destination_ip = ip->daddr,
         .proto = ip->protocol,
     };
 
-    if (key.ip == 4294967295)  // NOTE: ignore 255.255.255 for now
+    if (key.destination_ip == 4294967295)  // NOTE: ignore 255.255.255.255 for now
         return TC_ACT_OK;
 
     // Only count the UDP and TCP traffix now.
@@ -77,3 +78,5 @@ int tc_egress(struct __sk_buff *skb) {
 
     return TC_ACT_OK;
 }
+
+char _license[] SEC("license") = "GPL";  // must-have
