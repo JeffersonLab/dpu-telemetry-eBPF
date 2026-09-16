@@ -58,7 +58,10 @@ int tc_egress(struct __sk_buff *skb) {
         .proto = ip->protocol,
     };
 
-    /// NOTE: Ignore 0.0.0.0 (0) and 255.255.255.255 (4294967295) for now.
+    /// NOTE: Ignore packets from 0.0.0.0, the unspecified address. Only a host
+    /// without an IP yet sends from it; for IPv4 TCP/UDP that is DHCP
+    /// (DISCOVER/REQUEST, 0.0.0.0:68 -> 255.255.255.255:67). Broadcast and
+    /// multicast are destination addresses and are NOT filtered here.
     if (key.source_ip == 0)
         return TC_ACT_OK;
 

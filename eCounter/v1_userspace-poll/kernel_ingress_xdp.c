@@ -57,7 +57,10 @@ int xdp_ingress(struct xdp_md *ctx) {
         .proto = ip->protocol,
     };
 
-    // Ignore the trffic from 0.0.0.0 now. Multicast or broadcast traffic?
+    /// NOTE: Ignore packets from 0.0.0.0, the unspecified address. Only a host
+    /// without an IP yet sends from it; for IPv4 TCP/UDP that is DHCP
+    /// (DISCOVER/REQUEST, 0.0.0.0:68 -> 255.255.255.255:67). Broadcast and
+    /// multicast are destination addresses and are NOT filtered here.
     if (key.source_ip == 0)
         return XDP_PASS;
     
