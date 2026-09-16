@@ -74,7 +74,8 @@ int tc_egress(struct __sk_buff *skb) {
     }
 
     __sync_fetch_and_add(&val->packets, 1);
-    __sync_fetch_and_add(&val->bytes, bpf_ntohs(ip->tot_len));
+    // skb->len is the full frame from L2 up, including the Ethernet header.
+    __sync_fetch_and_add(&val->bytes, skb->len);
 
     return TC_ACT_OK;
 }

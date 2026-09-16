@@ -77,9 +77,9 @@ int tc_egress(struct __sk_buff *skb) {
     }
 
     // Update the Map's value field.
-    __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
+    // skb->len is the full frame from L2 up, including the Ethernet header.
     __sync_fetch_and_add(&val->packets, 1);
-    __sync_fetch_and_add(&val->bytes, payload_len);
+    __sync_fetch_and_add(&val->bytes, skb->len);
         
     return TC_ACT_OK;
 }
