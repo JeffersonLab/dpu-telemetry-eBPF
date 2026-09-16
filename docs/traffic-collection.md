@@ -21,8 +21,9 @@ cumulative counters to a userspace collector through pinned BPF maps.
 - TC ingress map keys contain `source_ip` as the source IPv4 address,
   `destination_ip` as the destination IPv4 address, and `proto` as the IP
   protocol number.
-- Counters contain packet totals and full-frame byte totals, including the
-  14-byte Ethernet header: `skb->len` on TC, `data_end - data` on XDP.
+- Counters contain packet totals and byte totals. TC programs count the full
+  frame via `skb->len`, including the 14-byte Ethernet header; the XDP program
+  counts IPv4 `tot_len`, L3 and above only.
 - Non-IPv4 and non-TCP/UDP traffic is ignored.
 - Packets continue through the networking stack with `TC_ACT_OK`.
 - Userspace keeps independent bins and last-seen counters for each directed

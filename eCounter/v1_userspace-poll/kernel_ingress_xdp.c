@@ -76,12 +76,12 @@ int xdp_ingress(struct xdp_md *ctx) {
     }
 
     // Update the Map's value field.
-    // XDP has no skb; data_end - data is the frame from L2 up, including the
-    // Ethernet header. Multi-buffer (xdp.frags) frames would need
-    // bpf_xdp_get_buff_len() instead, which requires kernel >= 5.18.
-    __u64 frame_len = data_end - data;
+    // XDP runs in the driver before the kernel allocates an skb, so skb->len
+    // (used by the TC programs) is not available here. For now count L3 and
+    // above only, excluding the Ethernet header.
+    __u16 payload_len = bpf_ntohs(ip->tot_len);  // L3 and above length
     __sync_fetch_and_add(&val->packets, 1);
-    __sync_fetch_and_add(&val->bytes, frame_len);
+    __sync_fetch_and_add(&val->bytes, payload_len);
 
     return XDP_PASS;
 }
