@@ -14,7 +14,7 @@
 #include <linux/udp.h>
 
 #include <bpf/bpf_helpers.h>
-#include <bpf/bpf_endian.h>  // #define bpf_ntohs(x) 
+#include <bpf/bpf_endian.h>  // #define bpf_ntohs(x)
 
 #include "tc_common.h" // header file for this project only
 
@@ -27,12 +27,12 @@ struct {
     __type(value, struct traffic_val_t);
 } map_in_tc SEC(".maps");
 
-/** Section to acctach to the TC ingress rule via: 
+/** Section to acctach to the TC ingress rule via:
  * sudo tc qdisc add dev <net_iface> clsact
  * sudo tc filter add dev <net_iface> ingress bpf da obj <tc_kernel_obj>.o sec <sec_name>
  */
 SEC("tc-ing")
-int tc_egress(struct __sk_buff *skb) {
+int tc_ingress(struct __sk_buff *skb) {
     void *data = (void *)(long)skb->data;  // start of the block
     void *data_end = (void *)(long)skb->data_end;  // end of the block
 
