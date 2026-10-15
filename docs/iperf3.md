@@ -110,9 +110,6 @@ sysctl net.core.rmem_max    # check the maximum receive buffer size
 sysctl net.core.rmem_default  # check the default receive buffer size
 sysctl net.core.wmem_max   # check the maximum send buffer size
 sysctl net.core.wmem_default   # check the default send buffer size
-# Set the buffer size to 128 MiB
-sudo sysctl -w net.core.wmem_max=134217728
-sudo sysctl -w net.core.wmem_default=134217728
-sudo sysctl -w net.core.rmem_max=134217728
-sudo sysctl -w net.core.rmem_default=134217728
+# Set the default buffer size to 1 GiB
+sudo sysctl -w net.core.rmem_default=1073741824 net.core.wmem_default=1073741824
 ```
